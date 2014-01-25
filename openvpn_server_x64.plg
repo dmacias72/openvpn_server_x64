@@ -781,14 +781,14 @@ openvpnserver_plgver()
 {
  case "$1" in
  'local')
-   if [ -f /boot/config/plugins/openvpn_server.plg ]; then
-      VERSION=$(grep "<\!ENTITY plgver" /boot/config/plugins/openvpn_server.plg | cut -d\" -f2)
+   if [ -f /boot/config/plugins/openvpn_server_x64.plg ]; then
+      VERSION=$(grep "<\!ENTITY plgver" /boot/config/plugins/openvpn_server_x64.plg | cut -d\" -f2)
    else
       VERSION=Unknown
    fi
   ;;
    'remote')
-     VERSION=$(wget --no-check-certificate -q https://raw.github.com/petersm1/OpenVPN-Server/master/openvpn_server.plg -O - | grep "<\!ENTITY plgver" | cut -d\" -f2)
+     VERSION=$(wget --no-check-certificate -q https://raw.github.com/petersm1/openvpn_server_x64/master/openvpn_server_x64.plg -O - | grep "<\!ENTITY plgver" | cut -d\" -f2)
       if [ "$VERSION" == "" ]; then
         VERSION=Unknown
       fi
@@ -807,18 +807,18 @@ server_IP()
 openvpnserver_updateplg()
 {
  cd /boot/config/plugins
-   [ -f openvpn_server.plg.old ] && rm -f openvpn_server.plg.old
+   [ -f openvpn_server_x64.plg.old ] && rm -f openvpn_server_x64.plg.old
     openvpnserver_stop;
 
-   if [ -f openvpn_server.plg ]; then
-	   mv openvpn_server.plg openvpn_server.plg.old
+   if [ -f openvpn_server_x64.plg ]; then
+	   mv openvpn_server_x64.plg openvpn_server_x64.plg.old
 	   echo "Updating plugin"
-	   wget -q --no-check-certificate https://github.com/petersm1/OpenVPN-Server/raw/master/openvpn_server.plg
-	   /usr/local/sbin/installplg /boot/config/plugins/openvpn_server.plg
+	   wget -q --no-check-certificate https://github.com/petersm1/openvpn_server_x64/raw/master/openvpn_server_x64.plg
+	   /usr/local/sbin/installplg /boot/config/plugins/openvpn_server_x64.plg
     else
 	    echo "Updating plugin"
-	    wget -q --no-check-certificate https://github.com/petersm1/OpenVPN-Server/raw/master/openvpn_server.plg
-	    /usr/local/sbin/installplg /boot/config/plugins/openvpn_server.plg
+	    wget -q --no-check-certificate https://github.com/petersm1/openvpn_server_x64/raw/master/openvpn_server_x64.plg
+	    /usr/local/sbin/installplg /boot/config/plugins/openvpn_server_x64.plg
            openvpnserver_start;
    fi
 }
@@ -826,12 +826,12 @@ openvpnserver_updateplg()
 openvpnserver_downgradeplg()
 {
 cd /boot/config/plugins
-    if [ -f openvpn_server.plg.old ]; then
+    if [ -f openvpn_server_x64.plg.old ]; then
       openvpnserver_stop;
-	rm -f /openvpn_server.plg
-	mv openvpn_server.plg.old openvpn_server.plg
+	rm -f /openvpn_server_x64.plg
+	mv openvpn_server_x64.plg.old openvpn_server_x64.plg
 	echo "downgrading plugin"
-	/usr/local/sbin/installplg /boot/config/plugins/openvpn_server.plg
+	/usr/local/sbin/installplg /boot/config/plugins/openvpn_server_x64.plg
       openvpnserver_start;
     fi
 } 
@@ -966,7 +966,7 @@ $openvpnserver_remoteplg = shell_exec("/etc/rc.d/rc.openvpnserver getver remote"
 $openvpnserver_localplg = shell_exec("/etc/rc.d/rc.openvpnserver getver local");
 $ovpncertsfolder = file_exists($openvpnserver_cert_cfg['KEY_PATH']) ? "yes" : "no";
 $certsw = $openvpnserver_cfg['SERVER_PATH'] . "/easy-rsa-master";
-$openvpnserver_rollback = file_exists( "boot/config/plugins/openvpn_server.plg.old" ) ? "yes" : "no";
+$openvpnserver_rollback = file_exists( "boot/config/plugins/openvpn_server_x64.plg.old" ) ? "yes" : "no";
 $ovpncertsoftware = file_exists($certsw) ? "yes" : "no";
 $updates_exist = "false";
 $ovpnfilename = $openvpnserver_cfg['SERVER_PATH'] . "/openvpnserver.ovpn";
