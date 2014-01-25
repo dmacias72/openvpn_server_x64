@@ -1,7 +1,7 @@
 <?xml version='1.0' standalone='yes'?>
 
 <!DOCTYPE PLUGIN [
-<!ENTITY plgver "2.0.1">
+<!ENTITY plgver "2.0.2">
 ]>
 
 <PLUGIN>
@@ -849,7 +849,7 @@ openvpnserver_getlocalversion()
 {
  if [ -e /usr/sbin/openvpn ];
    then
-     OPEN_VPN_INSTALLED=$(openvpn --version | grep "OpenVPN " | awk 'gsub(/.*i4 | i.*/,"")')
+     OPEN_VPN_INSTALLED=$(openvpn --version | grep "OpenVPN " | awk 'gsub(/.*i4 | x.*/,"")')
      #echo $OPEN_VPN_INSTALLED
      echo "${OPEN_VPN_INSTALLED: -6}"
  fi
