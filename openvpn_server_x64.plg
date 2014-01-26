@@ -1,7 +1,7 @@
 <?xml version='1.0' standalone='yes'?>
 
 <!DOCTYPE PLUGIN [
-<!ENTITY plgver "2.0.2">
+<!ENTITY plgver "2.0.3">
 ]>
 
 <PLUGIN>
@@ -31,10 +31,6 @@ openvpnserver version 2 64Bit
 <MD5>9fc6fcedc67a27dd555e64575847fb7b</MD5>
 </FILE>
 
-<FILE Name="/boot/packages/libidn-1.25-x86_64-2.txz" Run="upgradepkg --install-new">
-<URL>ftp://ftp.sunet.se/pub/os/Linux/distributions/slackware//slackware64-14.1/slackware64/l/libidn-1.25-x86_64-2.txz</URL>
-<MD5>d3e815ed032f3f58adab842daa0d6a17</MD5>
-</FILE>
 
 <FILE Name="/boot/packages/lzo-2.03-x86_64-1.txz" Run="upgradepkg --install-new">
 <URL>ftp://ftp.sunet.se/pub/os/Linux/distributions/slackware//slackware64-14.1/slackware64/l/lzo-2.03-x86_64-1.txz</URL>
