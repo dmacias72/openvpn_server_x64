@@ -1,7 +1,7 @@
 <?xml version='1.0' standalone='yes'?>
 
 <!DOCTYPE PLUGIN [
-<!ENTITY plgver "2.0.3">
+<!ENTITY plgver "2.0.4">
 ]>
 
 <PLUGIN>
@@ -796,7 +796,7 @@ openvpnserver_plgver()
 
 server_IP()
 {
-	IP=$(/sbin/ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}')
+	IP=$(/sbin/ifconfig eth0 | grep 'inet' | cut -d: -f2 | awk '{ print $2}')
 	echo $IP
 }
  
@@ -1035,6 +1035,7 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
     </table>
   </div>  
 
+
 <br></br>
 
 <div style="border: 0px solid black;">
@@ -1158,7 +1159,6 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
 
 <br></br>  
 
-
 <?if (($ovpncertsoftware=="yes") && ($ovpncertsfolder=="yes") && ($openvpnserver_config=="yes")):?> 
 <?if ($openvpnserver_running != "yes"):?>  
 <table>
@@ -1274,6 +1274,7 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
  </form> 
 <?endif;?>
 </div> 
+
     
 <div style="width: 47%; float:right; border: 0px solid black;">
    <div id="title">
@@ -1485,22 +1486,20 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
 <?endif;?>
      
  <div>
-	<tr>
+  <tr>
    <?if ($openvpnserver_running=="yes"):?>
-		 <tr>
-		 <td><textarea class="tooltip" title="OpenVPN status" wrap="hard" readonly="yes" style="width: 580px; height: 160px;color: blue;font-size: 8pt"><?php echo $openvpnststus_log; ?></textarea></td>
-	 	 </tr>
-	     <br></br>
-	     <tr>
-	     <td><textarea class="tooltip" title="OpenVPN log" wrap="hard" readonly="yes" style="width: 580px; height: 160px;color: blue;font-size: 8pt"><?php echo $openvpn_log; ?></textarea></td>
-	     </tr>
-	     <br></br>
-	  <?endif;?>
+    <tr>
+     <td><textarea class="tooltip" title="OpenVPN status" wrap="hard" readonly="yes" style="width: 580px; height: 160px;color: blue;font-size: 8pt"><?php echo $openvpnststus_log; ?></textarea></td>
+    </tr>
+     <br></br>
+	<tr>
+	<td><textarea class="tooltip" title="OpenVPN log" wrap="hard" readonly="yes" style="width: 580px; height: 160px;color: blue;font-size: 8pt"><?php echo $openvpn_log; ?></textarea></td>
+	</tr>
+	<br></br>
+    <?endif;?>
    </tr>
- 	</div>     
-  
-   <br></br>
-    
+  </div>     
+  <br></br>
  </table>
 </form>
 
@@ -1671,26 +1670,26 @@ shell_exec("/etc/rc.d/rc.openvpnserver add_client $ADD_NEW_CLIENT $NEW_PASSWORD_
 <![CDATA[
 
 <?PHP
-parse_str($argv[1], $_GET);
- 
-$INSTALL_ON_BOOT = $_GET['INSTALL_ON_BOOT'];
-$SERVER_PATH = $_GET['SERVER_PATH'];
-$SERVER_MODE = $_GET['SERVER_MODE'];
-$NETWORK = $_GET['NETWORK'];
-$NETMASK = $_GET['NETMASK'];
-$SERVER_PORT = $_GET['SERVER_PORT'];
-$CANONICAL = $_GET['CANONICAL'];
-$PROTOCOL = $_GET['PROTOCOL'];
-$CHIPHER = $_GET['CHIPHER'];
-$CLIENT = $_GET['CLIENT'];
-$HASH_ALGO = $_GET['HASH_ALGO'];
-$GATEWAY = $_GET['GATEWAY'];
-$SUBNET = $_GET['SUBNET'];
-$LAN_SUBNET = $_GET['LAN_SUBNET'];
-$COMP_LZO = $_GET['COMP_LZO'];
-$IPP = $_GET['IPP'];
-$DHCP_1 = $_GET['DHCP_1'];
-$DHCP_2 = $_GET['DHCP_2'];
+
+$INSTALL_ON_BOOT = $_POST['INSTALL_ON_BOOT'];
+$SERVER_PATH = $_POST['SERVER_PATH'];
+$SERVER_MODE = $_POST['SERVER_MODE'];
+$NETWORK = $_POST['NETWORK'];
+$NETMASK = $_POST['NETMASK'];
+$SERVER_PORT = $_POST['SERVER_PORT'];
+$CANONICAL = $_POST['CANONICAL'];
+$PROTOCOL = $_POST['PROTOCOL'];
+$CHIPHER = $_POST['CHIPHER'];
+$CLIENT = $_POST['CLIENT'];
+$HASH_ALGO = $_POST['HASH_ALGO'];
+$GATEWAY = $_POST['GATEWAY'];
+$SUBNET = $_POST['SUBNET'];
+$LAN_SUBNET = $_POST['LAN_SUBNET'];
+$COMP_LZO = $_POST['COMP_LZO'];
+$IPP = $_POST['IPP'];
+$DHCP_1 = $_POST['DHCP_1'];
+$DHCP_2 = $_POST['DHCP_2'];
+
 
 $arguments = "";
 $arguments .= "INSTALL_ON_BOOT_NEW=\"$INSTALL_ON_BOOT\"\n";
@@ -1737,14 +1736,13 @@ shell_exec("/etc/rc.d/rc.openvpnserver updatecfg");
 <![CDATA[
 
 <?PHP
-parse_str($argv[1], $_GET);
  
-$KEY_COUNTRY = $_GET['KEY_COUNTRY'];
-$KEY_PROVINCE = $_GET['KEY_PROVINCE'];
-$KEY_CITY = $_GET['KEY_CITY'];
-$KEY_ORG = $_GET['KEY_ORG'];
-$KEY_EMAIL = $_GET['KEY_EMAIL'];
-$KEY_PATH = $_GET['KEY_PATH'];
+$KEY_COUNTRY = $_POST['KEY_COUNTRY'];
+$KEY_PROVINCE = $_POST['KEY_PROVINCE'];
+$KEY_CITY = $_POST['KEY_CITY'];
+$KEY_ORG = $_POST['KEY_ORG'];
+$KEY_EMAIL = $_POST['KEY_EMAIL'];
+$KEY_PATH = $_POST['KEY_PATH'];
 
 $arguments = "";
 $arguments .= "KEY_COUNTRY_NEW=\"$KEY_COUNTRY\"\n";
