@@ -1,7 +1,7 @@
 <?xml version='1.0' standalone='yes'?>
 
 <!DOCTYPE PLUGIN [
-<!ENTITY plgver "2.0.4">
+<!ENTITY plgver "2.0.5">
 ]>
 
 <PLUGIN>
@@ -446,15 +446,6 @@ source /boot/config/plugins/openvpnserver/openvpnserver_cert.cfg
 echo "Revoking client: " $1
 	
 cd $SERVER_PATH/easy-rsa-master/easy-rsa/2.0/
-	
-file="openssl.cnf"
-if [ -f "$file" ]
-  then
-    echo "$file exist."
-else
-   ln -s openssl-1.0.0.cnf openssl.cnf
-  echo "$file linked to openssl-1.0.0.cnf"
-fi
 
 source ./vars
 sleep 1
@@ -474,15 +465,6 @@ source /boot/config/plugins/openvpnserver/openvpnserver.cfg
 source /boot/config/plugins/openvpnserver/openvpnserver_cert.cfg
 
 cd $SERVER_PATH/easy-rsa-master/easy-rsa/2.0/
-
-file="openssl.cnf"
-if [ -f "$file" ]
-  then
-    echo "$file exist."
-else
-   ln -s openssl-1.0.0.cnf openssl.cnf
-  echo "$file linked to openssl-1.0.0.cnf"
-fi
 
 PORT=$SERVER_PORT
 CONF_DIR="$KEY_PATH"
@@ -624,15 +606,6 @@ source /boot/config/plugins/openvpnserver/openvpnserver.cfg
 source /boot/config/plugins/openvpnserver/openvpnserver_cert.cfg
 
 cd $SERVER_PATH/easy-rsa-master/easy-rsa/2.0/
-
-file="openssl.cnf"
-if [ -f "$file" ]
-  then
-    echo "$file exist."
-else
-  ln -s openssl-1.0.0.cnf openssl.cnf
-  echo "$file linked to openssl-1.0.0.cnf"
-fi
 
 #OpenVPN common vars
 
@@ -1626,8 +1599,7 @@ fi
 <![CDATA[
 
 <?PHP
-parse_str($argv[1], $_GET);
-$REVOKE_A_CLIENT = $_GET['REVOKE_CLIENT'];
+$REVOKE_A_CLIENT = $_POST['REVOKE_CLIENT'];
 echo "Please wait while revoking client...";
 shell_exec("/etc/rc.d/rc.openvpnserver revoke_client $REVOKE_A_CLIENT >/var/local/emhttp/plugins/openvpnserver/add_client.log 2>&1");
 ?>
@@ -1648,9 +1620,8 @@ shell_exec("/etc/rc.d/rc.openvpnserver revoke_client $REVOKE_A_CLIENT >/var/loca
 <![CDATA[
 
 <?PHP
-parse_str($argv[1], $_GET);
-$ADD_NEW_CLIENT = $_GET['ADD_CLIENT'];
-$NEW_PASSWORD_PKCS12 = $_GET['PASSWORD_PKCS12'];
+$ADD_NEW_CLIENT = $_POST['ADD_CLIENT'];
+$NEW_PASSWORD_PKCS12 = $_POST['PASSWORD_PKCS12'];
 echo "Please wait while adding new client...";
 shell_exec("/etc/rc.d/rc.openvpnserver add_client $ADD_NEW_CLIENT $NEW_PASSWORD_PKCS12  >/var/local/emhttp/plugins/openvpnserver/add_client.log 2>&1");
 ?>
