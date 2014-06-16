@@ -1,7 +1,7 @@
 <?xml version='1.0' standalone='yes'?>
 
 <!DOCTYPE PLUGIN [
-<!ENTITY plgver "2.0.5">
+<!ENTITY plgver "2.0.6">
 ]>
 
 <PLUGIN>
@@ -127,6 +127,7 @@ curl -s --max-time 10 --silent checkip.dyndns.org | grep -Eo '[0-9\.]+'
 <![CDATA[
 # openvpnserver plugin configuration
 INSTALL_ON_BOOT="disable"
+DISCONNECT_ON_UMOUNT="no"
 SERVER_PATH=/mnt/cache/server
 SERVER_MODE=tun
 NETWORK=10.8.0.0
@@ -213,6 +214,7 @@ openvpnserver_updatecfg()
   [ -f $ARGUMENTS_FILE ] && source $ARGUMENTS_FILE
 
 INSTALL_ON_BOOT=$INSTALL_ON_BOOT_NEW
+DISCONNECT_ON_UMOUNT=$DISCONNECT_ON_UMOUNT_NEW
 SERVER_PATH=$SERVER_PATH_NEW
 SERVER_MODE=$SERVER_MODE_NEW
 NETWORK=$NETWORK_NEW
@@ -242,6 +244,7 @@ write_cfg()
 { 
   echo "# openvpnserver plugin configuration file" > /boot/config/plugins/openvpnserver/openvpnserver.cfg
   echo "INSTALL_ON_BOOT=\"$INSTALL_ON_BOOT\"" >> /boot/config/plugins/openvpnserver/openvpnserver.cfg
+  echo "DISCONNECT_ON_UMOUNT=\"$DISCONNECT_ON_UMOUNT\"" >> /boot/config/plugins/openvpnserver/openvpnserver.cfg
   echo "SERVER_PATH=$SERVER_PATH" >> /boot/config/plugins/openvpnserver/openvpnserver.cfg
   echo "SERVER_MODE=$SERVER_MODE" >> /boot/config/plugins/openvpnserver/openvpnserver.cfg
   echo "NETWORK=$NETWORK" >> /boot/config/plugins/openvpnserver/openvpnserver.cfg
@@ -1321,6 +1324,16 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
       </tr>
       
       <tr>
+	<td>Disconnect OpenVPN Server when stopping array:</td>
+	<td>
+	<select name="DISCONNECT_ON_UMOUNT" id="DISCONNECT_ON_UMOUNT" size="1">
+	<?=mk_option($openvpnserver_cfg['DISCONNECT_ON_UMOUNT'], "no", "No");?>
+	<?=mk_option($openvpnserver_cfg['DISCONNECT_ON_UMOUNT'], "yes", "Yes");?>
+	</select>
+	</td>         
+	<tr>   
+      
+      <tr>
       <td><a class="tooltip" <span class="classic">Path to store server config and cert's</span></a></td>
       <td>
       <input type="text" name="SERVER_PATH" id="SERVER_PATH" value="<?=$openvpnserver_cfg['SERVER_PATH'];?>" title="">
@@ -1488,6 +1501,7 @@ function IOSCheck(what){
 
 function validateForm() {
   document.getElementById('INSTALL_ON_BOOT').disabled = false;
+  document.getElementById('DISCONNECT_ON_UMOUNT').disabled = false;
   document.getElementById('SERVER_PATH').disabled = false;
   document.getElementById('SERVER_MODE').disabled = false;
   document.getElementById('NETWORK').disabled = false;
@@ -1524,6 +1538,7 @@ function checkRUNNING(form) {
   if ("<?=$openvpnserver_running?>" == "yes") {
   
     form.INSTALL_ON_BOOT.disabled = true;
+    form.DISCONNECT_ON_UMOUNT.disabled = true;
     form.SERVER_PATH.disabled = true;
     form.SERVER_MODE.disabled = true;
     form.NETWORK.disabled = true;
@@ -1578,7 +1593,9 @@ fi
 <INLINE>
 <![CDATA[
 #!/bin/bash
-/etc/rc.d/rc.openvpnserver stop
+if [[ $DISCONNECT_ON_UMOUNT == "yes" ]]; then
+        /etc/rc.d/rc.openvpnserver stop
+fi
 ]]>
 </INLINE>
 </FILE>
@@ -1643,6 +1660,7 @@ shell_exec("/etc/rc.d/rc.openvpnserver add_client $ADD_NEW_CLIENT $NEW_PASSWORD_
 <?PHP
 
 $INSTALL_ON_BOOT = $_POST['INSTALL_ON_BOOT'];
+$DISCONNECT_ON_UMOUNT = $_POST['DISCONNECT_ON_UMOUNT'];
 $SERVER_PATH = $_POST['SERVER_PATH'];
 $SERVER_MODE = $_POST['SERVER_MODE'];
 $NETWORK = $_POST['NETWORK'];
@@ -1664,6 +1682,7 @@ $DHCP_2 = $_POST['DHCP_2'];
 
 $arguments = "";
 $arguments .= "INSTALL_ON_BOOT_NEW=\"$INSTALL_ON_BOOT\"\n";
+$arguments .= "DISCONNECT_ON_UMOUNT_NEW=\"$DISCONNECT_ON_UMOUNT\"\n";
 $arguments .= "SERVER_PATH_NEW=\"$SERVER_PATH\"\n";
 $arguments .= "SERVER_MODE_NEW=\"$SERVER_MODE\"\n";
 $arguments .= "NETWORK_NEW=\"$NETWORK\"\n";
