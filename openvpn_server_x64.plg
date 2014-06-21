@@ -1,7 +1,7 @@
 <?xml version='1.0' standalone='yes'?>
 
 <!DOCTYPE PLUGIN [
-<!ENTITY plgver "2.0.6">
+<!ENTITY plgver "2.0.7">
 ]>
 
 <PLUGIN>
@@ -460,8 +460,6 @@ openvpnserver_add_client()
 {
 #Clients config
 
-# from GUI input new user $1
-# from GUI input password fpr pkcs12 file $2
 echo "Adding client: " $1
 
 source /boot/config/plugins/openvpnserver/openvpnserver.cfg
@@ -498,7 +496,7 @@ cd $KEY_DIR
 	
 client=$1
 
-#	KEY_CN=$client KEY_EMAIL=$KEY_CN@acme $SERVER_PATH/easy-rsa-master/easy-rsa/2.0/pkitool $KEY_CN
+#KEY_CN=$client KEY_EMAIL=$KEY_CN@acme $SERVER_PATH/easy-rsa-master/easy-rsa/2.0/pkitool $KEY_CN
 KEY_CN=$client $SERVER_PATH/easy-rsa-master/easy-rsa/2.0/pkitool $client
 	
 # New client file creating
@@ -530,10 +528,6 @@ END
  if [[ $2 == "" ]]; then
 	zip $CLI_DIR/$client.zip $client.ovpn $client.crt $client.key ca.crt ta.key		
  fi
-
-#test with tar	
-#tar -czf $CLI_DIR/$client.tar.gz $client.ovpn ca.crt $client.crt $client.key ta.key
-#** END ***
 
 chmod -R 755 $KEY_PATH
 
@@ -766,13 +760,12 @@ openvpnserver_plgver()
       fi
     ;;
   esac
-  # nb: remember to use -n to remove CRLF as otherwise php var needs TRIM on the shell_exec line
   echo -n "$VERSION"
 }
 
 server_IP()
 {
-	IP=$(/sbin/ifconfig eth0 | grep 'inet' | cut -d: -f2 | awk '{ print $2}')
+	IP=$(ip route get 8.8.8.8 | awk '/8.8.8.8/ {print $NF}')
 	echo $IP
 }
  
