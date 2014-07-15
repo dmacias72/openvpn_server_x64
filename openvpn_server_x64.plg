@@ -1,7 +1,7 @@
 <?xml version='1.0' standalone='yes'?>
 
 <!DOCTYPE PLUGIN [
-<!ENTITY plgver "2.0.7">
+<!ENTITY plgver "2.0.8">
 ]>
 
 <PLUGIN>
@@ -145,6 +145,7 @@ COMP_LZO="comp-lzo"
 IPP="ipp.txt"
 DHCP_1="dhcp-option DNS 8.8.8.8"
 DHCP_2=""
+TELNET_CONSOLE="no"
 ]]>
 </INLINE>
 </FILE>
@@ -232,6 +233,7 @@ COMP_LZO=$COMP_LZO_NEW
 IPP=$IPP_NEW
 DHCP_1=$DHCP_1_NEW
 DHCP_2=$DHCP_2_NEW
+TELNET_CONSOLE=$TELNET_CONSOLE_NEW
 
   write_cfg
   
@@ -262,6 +264,8 @@ write_cfg()
   echo "IPP=\"$IPP\"" >> /boot/config/plugins/openvpnserver/openvpnserver.cfg
   echo "DHCP_1=\"$DHCP_1\"" >> /boot/config/plugins/openvpnserver/openvpnserver.cfg
   echo "DHCP_2=\"$DHCP_2\"" >> /boot/config/plugins/openvpnserver/openvpnserver.cfg
+  echo "TELNET_CONSOLE=\"$TELNET_CONSOLE\"" >> /boot/config/plugins/openvpnserver/openvpnserver.cfg
+  
 
   logger -trc.openvpnserver -plocal7.info -is "Plugin configuration written"
 }
@@ -292,6 +296,8 @@ openvpnserver_stop()
 	   sleep 2
 	   rm -f /var/run/openvpnserver/openvpnserver.pid
 	   rm -rf /var/local/emhttp/plugins/openvpnserver/openvpnserver.out
+	   rm -rf /var/log/openvpnserver.log
+	   rm -rf /var/log/openvpnserver-status.log
 	   echo "... Stopped"
   else
      echo "Server already stoped"
@@ -388,6 +394,12 @@ fi
 echo "status /var/log/openvpnserver-status.log 5" >> $SERVER_PATH/openvpnserver.ovpn
 echo "log-append /var/log/openvpnserver.log" >> $SERVER_PATH/openvpnserver.ovpn
 echo "status-version 2" >> $SERVER_PATH/openvpnserver.ovpn
+
+if [ "$TELNET_CONSOLE" = "yes" ]; then
+	SERVERIP=$(/etc/rc.d/rc.openvpnserver serverip)
+	echo "management $SERVERIP 5902" >> $SERVER_PATH/openvpnserver.ovpn
+fi
+
 }
 
 check_pem()
@@ -417,6 +429,13 @@ openvpnserver_get_subnet()
    SUBNET_IP="${GW_SUB%.*}.0"
    echo $SUBNET_IP
 }
+
+openvpnserver_get_vpnserver()
+{	
+   VPN_SERVER=$( ifconfig tun0 | grep inet | awk '{print $2}')
+   echo $VPN_SERVER 
+}
+
 
 openvpnserver_get_easy()
 {
@@ -818,7 +837,46 @@ openvpnserver_getlocalversion()
      #echo $OPEN_VPN_INSTALLED
      echo "${OPEN_VPN_INSTALLED: -6}"
  fi
-} 
+}
+
+openvpnserver_view_online_user() {
+VIEW_ONLINE_USER="` grep -P "CLIENT_LIST," /var/log/openvpnserver-status.log | sed -r 's/^[^,]+,+((,*[^,]+){1}).*/\1/' |  grep -Eiv "CLIENT_LIST"`"
+if [ "$VIEW_ONLINE_USER" == "" ]
+   then
+      echo "NO CLIENTS CONECTED"
+   else
+      echo "$VIEW_ONLINE_USER"
+fi
+}
+
+openvpnserver_list_valid_user(){
+source /boot/config/plugins/openvpnserver/openvpnserver_cert.cfg
+
+if [ -f $KEY_PATH/keys/index.txt ]; then
+   VIEW_VALID_USER="`grep -P "V\t" $KEY_PATH/keys/index.txt | sed 's/.*CN=\(.*\)\/name.*/\1/g'  | grep -Eiv "server"`"
+    if [ "$VIEW_VALID_USER" == "" ]
+      then
+        echo "NO CLIENTS CREATED YET"
+      else
+       echo "$VIEW_VALID_USER" 
+    fi
+fi 
+}
+
+openvpnserver_view_revoked_user() {
+source /boot/config/plugins/openvpnserver/openvpnserver_cert.cfg
+
+if [ -f $KEY_PATH/keys/index.txt ]; then
+   VIEW_REVOKED_USER="`grep -P "R\t" $KEY_PATH/keys/index.txt | sed 's/.*CN=\(.*\)\/name.*/\1/g'`"
+     if [ "$VIEW_REVOKED_USER" == "" ]
+       then
+         echo "NO CLIENTS REVOKED"
+       else
+        echo "$VIEW_REVOKED_USER"
+     fi
+fi
+
+}
 
 # read our configuration
 source /boot/config/plugins/openvpnserver/openvpnserver.cfg
@@ -866,8 +924,11 @@ case "$1" in
   'get_gw')
    openvpnserver_get_def_gw
    ;;
-  'get_subnet')
+   'get_subnet')
    openvpnserver_get_subnet
+   ;;
+  'get_vpnserver')
+   openvpnserver_get_vpnserver
    ;;
    'add_client')
    openvpnserver_add_client $2 $3 $4
@@ -878,10 +939,19 @@ case "$1" in
     'check_pem')
    check_pem
    ;;
+    'view_valid_user')
+   openvpnserver_list_valid_user
+   ;;
+    'view_online_user')
+   openvpnserver_view_online_user
+   ;;
+    'view_revoked_user')
+   openvpnserver_view_revoked_user
+   ;;
    
   *)
     
-    echo "usage $0 start|stop|download_easy-rsa|create_server_cert|add_client 'name'|revoke_client 'name'"
+    echo "usage $0 start|stop|download_easy-rsa|create_server_cert|add_client 'name'|add_client 'name' 'password|revoke_client 'name'|view_valid_user|view_online_user|view_revoked_user"
 esac
 
 ]]>
@@ -926,6 +996,9 @@ Title="OpenVPN Server"
 $openvpnserver_cfg = parse_ini_file( "/boot/config/plugins/openvpnserver/openvpnserver.cfg");
 $openvpnserver_cert_cfg = parse_ini_file( "/boot/config/plugins/openvpnserver/openvpnserver_cert.cfg");
 $AUTO_SERVER_ADDR = shell_exec("/etc/rc.d/rc.openvpnserver serverip");
+$VALID_USER = shell_exec("/etc/rc.d/rc.openvpnserver view_valid_user");
+$ONLINE_USER = shell_exec("/etc/rc.d/rc.openvpnserver view_online_user");
+$REVOKED_USER = shell_exec("/etc/rc.d/rc.openvpnserver view_revoked_user");
 $openvpnserver_running = file_exists("/var/run/openvpnserver/openvpnserver.pid") ? "yes" : "no";
 $openvpnserver_remoteplg = shell_exec("/etc/rc.d/rc.openvpnserver getver remote");
 $openvpnserver_localplg = shell_exec("/etc/rc.d/rc.openvpnserver getver local");
@@ -940,7 +1013,7 @@ $OPEN_VPN_ONLINE_VER = shell_exec("/etc/rc.d/rc.openvpnserver getonlineversion")
 $OPEN_VPN_INSTALLED = shell_exec("/etc/rc.d/rc.openvpnserver getlocalversion");
 $internet_myip = shell_exec("/var/local/emhttp/plugins/openvpnserver/check-my-ip.sh");
 $LAN_IP = shell_exec("/etc/rc.d/rc.openvpnserver get_gw");
-$LAN_SUBNET = shell_exec("/etc/rc.d/rc.openvpnserver get_subnet");
+$VPN_SERVER_IP = shell_exec("/etc/rc.d/rc.openvpnserver get_vpnserver");
 $check_netstat = shell_exec("ip route show");
 $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
 
@@ -1013,7 +1086,7 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
         <td>WAN IP</td>
         <td>SERVER IP</td>
         <td>ROUTER IP</td>
-        <td>SUBNET IP</td>
+        <td>VPN SERVER IP</td>
       </tr>
       <tr style="font-weight:bold; background:#FFFFFF;">
         <td>         
@@ -1026,14 +1099,45 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
             <span class="green-text"><?=$LAN_IP?></span>
         </td>      
         <td>         
-            <span class="green-text"><?=$LAN_SUBNET?></span>
+            <span class="green-text"><?=$VPN_SERVER_IP?></span>
         </td>      
+
       </tr>      
     </table>
   </div>  
-
+  <br></br>
+  <div style="border: 0px solid black;">
+    <table>      
+      <tr style="font-weight:bold; color:#333333; background:#F0F0F0; text-shadow:0 1px 1px #FFFFFF;">
+        <td>Valid user</td>
+        <td>Revoked user</td>
+         </tr>
+          <tr style="font-weight:bold; background:#FFFFFF;">
+         <td>         
+          <span class="green-text"><?=$VALID_USER?></span>        
+        </td>
+         <td>         
+          <span class="red-text"><?=$REVOKED_USER?></span>        
+        </td>
+      </tr>      
+    </table>
+  </div>  
 <br></br>
-
+<?if ($openvpnserver_running=="yes"):?>
+  <div style="border: 0px solid black;">
+    <table>      
+      <tr style="font-weight:bold; color:#333333; background:#F0F0F0; text-shadow:0 1px 1px #FFFFFF;">
+        <td>Online user</td>
+         </tr>
+             <tr style="font-weight:bold; background:#FFFFFF;">
+             <td>         
+             <span class="green-text"><?=$ONLINE_USER?></span>        
+             </td>
+             </tr>
+    </table>
+  </div>  
+<br></br>
+<?endif;?>      
 <div>
 <table>    
  <tr style="font-weight:bold; color:#333333; background:#F0F0F0; text-shadow:0 1px 1px #FFFFFF;">
@@ -1160,13 +1264,24 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
 	</td>
 	</tr>	
  </form>
+
+<?if ($openvpnserver_running != "yes"):?>  
+
+<br></br>
+	<tr>
+	<td><textarea class="tooltip" title="OpenVPN log" wrap="hard" readonly="yes" style="width: 500px; height: 140px;color: blue;font-size: 8pt"><?php echo $openvpn_log; ?></textarea></td>
+	</tr>
+	<br></br>
+  <?endif;?>		
+
   
 <?if ($openvpnserver_running != "yes"):?>  
  	 <tr>
-	 <td><textarea class="tooltip" title="OpenVPN add client log: when rovoke a client, you are geting an error on last line. That is what you want to see, as it indicates that a certificate verification of the revoked certificate failed" wrap="hard" readonly="yes" style="width: 580px; height: 160px;color: blue;font-size: 8pt"><?php echo $add_client_log; ?></textarea></td>
+	 <td><textarea class="tooltip" title="OpenVPN add client log: when rovoke a client, you are geting an error on last line. That is what you want to see, as it indicates that a certificate verification of the revoked certificate failed" wrap="hard" readonly="yes" style="width: 500px; height: 160px;color: blue;font-size: 8pt"><?php echo $add_client_log; ?></textarea></td>
 	 </tr>
   <?endif;?>
-<?endif;?>	
+<?endif;?>
+
 </table>
 
     
@@ -1198,42 +1313,42 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
       </tr>
   
       <tr>
-      <td><a class="tooltip" <span class="classic">CERT: Path to store the cert's</span></a></td>
+      <td>Path to store the cert's</td>
       <td>
       <input type="text" name="KEY_PATH" id="KEY_PATH" value="<?=$openvpnserver_cert_cfg['KEY_PATH'];?>" title="">
       </td>
       </tr>
       
       <tr>
-      <td><a class="tooltip" <span class="classic">CERT: Country</span></a></td>
+      <td>Country</td>
       <td>
       <input type="text" name="KEY_COUNTRY" id="KEY_COUNTRY" style="width:7%" maxlength="2" value="<?=$openvpnserver_cert_cfg['KEY_COUNTRY'];?>" title="Default is ...">
       </td>
       </tr>  
  
       <tr>
-      <td><a class="tooltip" <span class="classic">CERT: Province</span></a></td>
+      <td>Province</td>
       <td>
       <input type="text" name="KEY_PROVINCE" id="KEY_PROVINCE" style="width:47%" maxlength="20" value="<?=$openvpnserver_cert_cfg['KEY_PROVINCE'];?>" title="Default is ...">
       </td>
       </tr>   
       
       <tr>
-      <td><a class="tooltip" <span class="classic">CERT: City</span></a></td>
+      <td>City</td>
       <td>
       <input type="text" name="KEY_CITY" id="KEY_CITY" style="width:47%" maxlength="20" value="<?=$openvpnserver_cert_cfg['KEY_CITY'];?>" title="Default is ...">
       </td>
       </tr>   
   
       <tr>
-      <td><a class="tooltip" <span class="classic">CERT: Organisation</span></a></td>
+      <td>Organisation</td>
       <td>
       <input type="text" name="KEY_ORG" id="KEY_ORG" style="width:47%" maxlength="20" value="<?=$openvpnserver_cert_cfg['KEY_ORG'];?>" title="Default is ...">
       </td>
       </tr>   
       
       <tr>
-      <td><a class="tooltip" <span class="classic">CERT: E-Mail</span></a></td>
+      <td>E-Mail</td>
       <td>
       <input type="text" name="KEY_EMAIL" id="KEY_EMAIL" style="width:62%" maxlength="30" value="<?=$openvpnserver_cert_cfg['KEY_EMAIL'];?>" title="Default is ...">
       </td>
@@ -1307,17 +1422,17 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
       </tr>
         
       <tr>
-      <td>Start OpenVPN server during array mount:</td>
+      <td>Start OpenVPN server during array mount</td>
       <td>
       <select name="INSTALL_ON_BOOT" id="INSTALL_ON_BOOT" size="1">
-      <?=mk_option($openvpnserver_cfg['INSTALL_ON_BOOT'], "enable", "YES");?>
-      <?=mk_option($openvpnserver_cfg['INSTALL_ON_BOOT'], "disable", "NO");?>
+      <?=mk_option($openvpnserver_cfg['INSTALL_ON_BOOT'], "enable", "Yes");?>
+      <?=mk_option($openvpnserver_cfg['INSTALL_ON_BOOT'], "disable", "No");?>
       </select>
       </td>
       </tr>
       
       <tr>
-	<td>Disconnect OpenVPN Server when stopping array:</td>
+	<td>Disconnect OpenVPN Server when stopping array</td>
 	<td>
 	<select name="DISCONNECT_ON_UMOUNT" id="DISCONNECT_ON_UMOUNT" size="1">
 	<?=mk_option($openvpnserver_cfg['DISCONNECT_ON_UMOUNT'], "no", "No");?>
@@ -1327,7 +1442,7 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
 	<tr>   
       
       <tr>
-      <td><a class="tooltip" <span class="classic">Path to store server config and cert's</span></a></td>
+      <td>Path to store server config and cert's</td>
       <td>
       <input type="text" name="SERVER_PATH" id="SERVER_PATH" value="<?=$openvpnserver_cfg['SERVER_PATH'];?>" title="">
       </td>
@@ -1341,21 +1456,21 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
       </tr>
       
       <tr>
-      <td><a class="tooltip" <span class="classic">Dynamic DNS</span></a></td>
+      <td>Dynamic DNS</td>
       <td>
       <input type="text" style="width:55%" maxlength="25" name="CANONICAL" id="CANONICAL" value="<?=$openvpnserver_cfg['CANONICAL'];?>" title="If you have a URL (like DynDNS), you can enter it here, this will overide your WAN IP in client config files">
       </td>
       </tr> 
      
       <tr>
-      <td><a class="tooltip" <span class="classic">VPN subnet for OpenVPN server</span></a></td>
+      <td>VPN subnet for OpenVPN server</td>
       <td>
       <input type="text" style="width:25%" maxlength="15" name="NETWORK" id="NETWORK" value="<?=$openvpnserver_cfg['NETWORK'];?>" title="Default is 10.8.0.0 (for routing), but can be set to any IP you like for the VPN server">
       </td>
       </tr> 
       
       <tr>
-      <td><a class="tooltip" <span class="classic">Netmask</span></a></td>
+      <td>Netmask</td>
       <td>
       <input type="text" style="width:25%" maxlength="15" name="NETMASK" id="NETMASK" value="<?=$openvpnserver_cfg['NETMASK'];?>" title="Default is 255.255.255.0">
       </td>
@@ -1370,7 +1485,7 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
       </tr>   
       
       <tr>
-      <td>Push DHCP 1 </td>
+      <td>Push DHCP 1</td>
       <td><select name="DHCP_1" id="DHCP_1" size="1">
       <?=mk_option($openvpnserver_cfg['DHCP_1'], "dhcp-option DNS 8.8.8.8", "dhcp-option DNS 8.8.8.8");?>
       <?=mk_option($openvpnserver_cfg['DHCP_1'], "", "No");?>
@@ -1378,7 +1493,7 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
       </tr>
 
       <tr>
-      <td>Push DHCP 1 </td>
+      <td>Push DHCP 2</td>
       <td><select name="DHCP_2" id="DHCP_2" size="1">
       <?=mk_option($openvpnserver_cfg['DHCP_2'], "dhcp-option DNS 8.8.4.4", "dhcp-option DNS 8.8.4.4");?>
       <?=mk_option($openvpnserver_cfg['DHCP_2'], "", "No");?>
@@ -1386,7 +1501,7 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
       </tr>
   
       <tr>
-      <td><a class="tooltip" <span class="classic">Port for the server</span></a></td>
+      <td><a <span class="classic">Port for the server</span></a></td>
       <td>
       <input type="text" style="width:17%" maxlength="5" name="SERVER_PORT" id="SERVER_PORT" value="<?=$openvpnserver_cfg['SERVER_PORT'];?>" title="You will need to open up this port on your firewall or router">
       </td>
@@ -1421,7 +1536,7 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
            
       <tr>
       <td>ifconfig-pool-persist ipp.txt</td>
-      <td><select name="IPP" id="IPP" value="Maintain a record of client  virtual IP address associations in this file.If OpenVPN goes down or is restarted, reconnecting clients can be assigned the same virtual IP address from the pool that was previously assigned." id="IPP" size="1">
+      <td><select name="IPP" id="IPP" title="Maintain a record of client  virtual IP address associations in this file.If OpenVPN goes down or is restarted, reconnecting clients can be assigned the same virtual IP address from the pool that was previously assigned."  size="1">
       <?=mk_option($openvpnserver_cfg['IPP'], "ipp.txt", "Yes");?>
       <?=mk_option($openvpnserver_cfg['IPP'], "", "No");?>
       </select></td>
@@ -1446,7 +1561,7 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
       </tr>   
        
       <tr>
-      <td> Push LAN subnet to the clients</td>
+      <td>Push LAN subnet to the clients</td>
       <td><select name="LAN_SUBNET" id="LAN_SUBNET" size="1">
       <?=mk_option($openvpnserver_cfg['LAN_SUBNET'], "Enable", "Yes");?>
       <?=mk_option($openvpnserver_cfg['LAN_SUBNET'], "Disable", "No");?>
@@ -1461,7 +1576,17 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
       </select></td>
       </tr>
       
+      <tr>
+      <td>TELNET management console</td>
+      <td><select name="TELNET_CONSOLE" id="TELNET_CONSOLE" title="This will get you acess to an TELNET console on UnRAid IP port 5902. Acessing the console, use Putty" size="1">
+      <?=mk_option($openvpnserver_cfg['TELNET_CONSOLE'], "No", "No");?>
+      <?=mk_option($openvpnserver_cfg['TELNET_CONSOLE'], "yes", "Yes");?>
+      </select></td>
+      </tr>
+      
       <br></br> 
+      
+      
 <?endif;?>
      
  <div>
@@ -1470,12 +1595,14 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
     <tr>
      <td><textarea class="tooltip" title="OpenVPN status" wrap="hard" readonly="yes" style="width: 580px; height: 160px;color: blue;font-size: 8pt"><?php echo $openvpnststus_log; ?></textarea></td>
     </tr>
+
      <br></br>
 	<tr>
 	<td><textarea class="tooltip" title="OpenVPN log" wrap="hard" readonly="yes" style="width: 580px; height: 160px;color: blue;font-size: 8pt"><?php echo $openvpn_log; ?></textarea></td>
 	</tr>
 	<br></br>
     <?endif;?>
+
    </tr>
   </div>     
   <br></br>
@@ -1512,6 +1639,9 @@ function validateForm() {
   document.getElementById('IPP').disabled = false;
   document.getElementById('DHCP_1').disabled = false;
   document.getElementById('DHCP_2').disabled = false;
+  document.getElementById('TELNET_CONSOLE').disabled = false;
+  
+  
  
 }
 
@@ -1549,6 +1679,7 @@ function checkRUNNING(form) {
     form.IPP.disabled = true;
     form.DHCP_1.disabled = true;
     form.DHCP_2.disabled = true;
+    form.TELNET_CONSOLE.disabled = true;
     form.KEY_COUNTRY.disabled = true;
     form.KEY_PROVINCE.disabled = true;
     form.KEY_CITY.disabled = true;
@@ -1671,6 +1802,7 @@ $COMP_LZO = $_POST['COMP_LZO'];
 $IPP = $_POST['IPP'];
 $DHCP_1 = $_POST['DHCP_1'];
 $DHCP_2 = $_POST['DHCP_2'];
+$TELNET_CONSOLE = $_POST['TELNET_CONSOLE'];
 
 
 $arguments = "";
@@ -1693,6 +1825,7 @@ $arguments .= "COMP_LZO_NEW=\"$COMP_LZO\"\n";
 $arguments .= "IPP_NEW=\"$IPP\"\n";
 $arguments .= "DHCP_1_NEW=\"$DHCP_1\"\n";
 $arguments .= "DHCP_2_NEW=\"$DHCP_2\"\n";
+$arguments .= "TELNET_CONSOLE_NEW=\"$TELNET_CONSOLE\"\n";
 
 echo "Please wait while updating configuration...";
 
