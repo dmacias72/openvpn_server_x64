@@ -1,7 +1,7 @@
 <?xml version='1.0' standalone='yes'?>
 
 <!DOCTYPE PLUGIN [
-<!ENTITY plgver "2.0.8">
+<!ENTITY plgver "2.0.9">
 ]>
 
 <PLUGIN>
@@ -1186,7 +1186,7 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
        <td width="30%">
         <form name="openvpnserver_installcert" method="POST" action="/update.htm" target="progressFrame">
           <input type="hidden" name="cmd" value="/etc/rc.d/rc.openvpnserver download_easy-rsa">
-          <input type="submit" name="runCmd" value="Install cert software (easy-rsa)">
+          <input type="submit" name="runCmd" value="Install RSA key management package (easy-rsa)">
         </form>
        </td>
          <?if ($ovpncertsoftware=="yes"):?>
@@ -1201,7 +1201,7 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
         <td width="30%">
          <form name="openvpnserver_create_server_cert" method="POST" action="/update.htm" target="progressFrame">
             <input type="hidden" name="cmd" value="/etc/rc.d/rc.openvpnserver create_server_cert">
-            <input type="submit"  title="This will take a long time......"  name="runCmd" value="Create cert's and config files for the server">
+            <input type="submit"  title="This will take a long time......"  name="runCmd" value="Generat server certificates and keys">
           </form>
         </td>
          <?if ($ovpncertsfolder=="yes"):?>
@@ -1212,20 +1212,13 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
          <?endif;?>
        </tr>
         
-       <tr>
-        <td width="30%">
-         <form name="openvpnserver_install_cert" method="POST" action="/update.htm" target="progressFrame">
-            <input type="hidden" name="cmd" value="/etc/rc.d/rc.openvpnserver writeconf">
-            <input type="submit" name="runCmd" value="Create or update server config file (openvpnserver.ovpn)">
-         </form>
-        </td>
+       <td><b><span class="black-text">Server config file:</span></b></td>
           <?if ($openvpnserver_config=="yes"):?>
          	<td align="center" class="green-text"><b>&#10004</b></td>
          	<td> <span class="green-text"></span></td>
           <?else:?> 	
          	<td align="center" class="red-text"><b>&#10008</b></td>      	
          <?endif;?>
-       </tr>   
   <?endif;?>
  </table>
 </div>
@@ -1413,12 +1406,14 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
 <form name="openvpnserver_settings" method="POST" action="/plugins/openvpnserver/openvpnserver_submit.php" target="progressFrame" onsubmit="validateForm();">
  <table>   
    <?if ($openvpnserver_running != "yes"):?> 
+    
+    
       <tr>
       <td colspan="2" align="left">
-   	   <?if ($openvpnserver_running != "yes"):?>
-         <input type="submit" value="Save Below Configuration">
+       <?if ($openvpnserver_running != "yes"):?>
+        <input type="submit" value="Save Below Configuration" title="The openvpnserver.conf will automaticly be created / updated when saving">
        <?endif;?>
-       </td>
+      </td>
       </tr>
         
       <tr>
@@ -1832,6 +1827,7 @@ echo "Please wait while updating configuration...";
 $file = "/usr/local/emhttp/plugins/openvpnserver/openvpnserver.args";
 file_put_contents($file, $arguments);
 shell_exec("/etc/rc.d/rc.openvpnserver updatecfg");
+shell_exec("/etc/rc.d/rc.openvpnserver writeconf");
 
 ?>
 
