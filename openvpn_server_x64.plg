@@ -1,7 +1,7 @@
 <?xml version='1.0' standalone='yes'?>
 
 <!DOCTYPE PLUGIN [
-<!ENTITY plgver "2.0.9">
+<!ENTITY plgver "2.0.10">
 ]>
 
 <PLUGIN>
@@ -90,21 +90,8 @@ rm -f /var/local/emhttp/plugins/openvpnserver/openvpnserver-cleanup
 # Check my IP script
 #!/bin/bash
 ]]>
-#curl -s --max-time 10 --silent http://geoip.hidemyass.com/ip/
-#curl -s --max-time 10 --silent http://my-ip-address.com/  | grep "Your IP is"
-#curl -s  --max-time 10 --silent http://myip.dk/  | grep "IP Address:"
-#curl -s --max-time 10 --silent http://checkmyip.org/ | grep "Your IP address"
-#curl -s --max-time 10 --silent http://www.whereisip.net/ | grep "Locating IP Address"
-#curl --max-time 10 --silent ifconfig.me/ip
-#curl --max-time 10 --silent icanhazip.com
-#curl --max-time 10 --silent http://ipecho.net/plain
-#wget -qO- http://ipecho.net/plain
-curl -s --max-time 10 --silent checkip.dyndns.org | grep -Eo '[0-9\.]+'
-#wget -q -O - -q --tries=2 --timeout=5 checkip.dyndns.org | sed -e 's/[^[:digit:]\|.]//g'
-#wget http://www.ipchicken.com -O - -o /dev/null | grep -A 1 0000FF|grep br|awk '{print $1}'
-###wget http://snoopmyip.com/ -O - -o /dev/null | grep -A 1 "My Proxy:"|grep ":"|awk '{print $3}'
-##http://www.canyouseeme.org/
-
+#curl -s --max-time 10 --silent checkip.dyndns.org | grep -Eo '[0-9\.]+'
+wget http://ipecho.net/plain -O - -q ; echo
 </INLINE>
 </FILE>
 
@@ -451,8 +438,6 @@ else
 fi
 
 cd $SERVER_PATH
-#wget -O master.zip --no-check-certificate  https://github.com/OpenVPN/easy-rsa/archive/master.zip
-#unzip -o master.zip
 wget -O 2.x.zip --no-check-certificate https://github.com/OpenVPN/easy-rsa/archive/release/2.x.zip
 unzip -o 2.x.zip
 mv easy-rsa-release-2.x easy-rsa-master
@@ -824,8 +809,6 @@ openvpnserver_getonlineversion()
 {
   OPEN_VPN_HOSTING_SERVER="http://openvpn.net/index.php/open-source/downloads.html"
   OPEN_VPN_ONLINE_VER=$(wget ${OPEN_VPN_HOSTING_SERVER} -q --no-check-certificate -O - |grep "Change Log" | awk 'gsub(/.*OpenVPN | -- released on.*/,"")')
-# original         OPEN_VPN_ONLINE_VER=$(wget ${OPEN_VPN_HOSTING_SERVER} -q --no-check-certificate -O - |grep "latest-stable" | awk 'gsub(/.*OpenVPN | -- released.*/,"")')
-# original         echo $OPEN_VPN_ONLINE_VER
   echo "${OPEN_VPN_ONLINE_VER:0:6}"
 }
 
@@ -853,7 +836,7 @@ openvpnserver_list_valid_user(){
 source /boot/config/plugins/openvpnserver/openvpnserver_cert.cfg
 
 if [ -f $KEY_PATH/keys/index.txt ]; then
-   VIEW_VALID_USER="`grep -P "V\t" $KEY_PATH/keys/index.txt | sed 's/.*CN=\(.*\)\/name.*/\1/g'  | grep -Eiv "server"`"
+   VIEW_VALID_USER="`grep -P "V\t" $KEY_PATH/keys/index.txt | sed 's/.*CN=\(.*\)\/name.*/\1/g'  | grep -Eiv "server" | sed 's/$/\ ; /'`"
     if [ "$VIEW_VALID_USER" == "" ]
       then
         echo "NO CLIENTS CREATED YET"
@@ -867,7 +850,7 @@ openvpnserver_view_revoked_user() {
 source /boot/config/plugins/openvpnserver/openvpnserver_cert.cfg
 
 if [ -f $KEY_PATH/keys/index.txt ]; then
-   VIEW_REVOKED_USER="`grep -P "R\t" $KEY_PATH/keys/index.txt | sed 's/.*CN=\(.*\)\/name.*/\1/g'`"
+   VIEW_REVOKED_USER="`grep -P "R\t" $KEY_PATH/keys/index.txt | sed 's/.*CN=\(.*\)\/name.*/\1/g' | sed 's/$/\ ; /'`"
      if [ "$VIEW_REVOKED_USER" == "" ]
        then
          echo "NO CLIENTS REVOKED"
@@ -1201,7 +1184,7 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
         <td width="30%">
          <form name="openvpnserver_create_server_cert" method="POST" action="/update.htm" target="progressFrame">
             <input type="hidden" name="cmd" value="/etc/rc.d/rc.openvpnserver create_server_cert">
-            <input type="submit"  title="This will take a long time......"  name="runCmd" value="Generat server certificates and keys">
+            <input type="submit"  title="This will take a long time......"  name="runCmd" value="Generate server certificates and keys">
           </form>
         </td>
          <?if ($ovpncertsfolder=="yes"):?>
@@ -1229,7 +1212,7 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
 <?if ($openvpnserver_running != "yes"):?>  
 <table>
     <tr style="font-weight:bold; color:#333333; background:#F0F0F0; text-shadow:0 1px 1px #FFFFFF;">
-        <td colspan="2">Client configuration: Add or revoke client one by one</td>
+        <td colspan="2">Client configuration: Add or revoke client</td>
       </tr>
 <?endif;?>
 
@@ -1240,8 +1223,8 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
    		 <input type="checkbox" title="When enabled this, you need to type in a password for the p12 file" name="IOS" id="IOS" onClick="IOSCheck(this)">  iOS compatible client cert 
 		   <br></br>  
 		   <input type="submit" value="Add client" style="height: 25px; width: 85px">
-		   <input type="text" style="width:20%" maxlength="15" name="ADD_CLIENT" id="ADD_CLIENT">
-   		 <input type="text" title="When typing in a password here, it will automatic create a pkcs12 file and a modified ovpn for the client" style="width:20%" maxlength="15" name="PASSWORD_PKCS12" id="PASSWORD_PKCS12" disabled="disabled">
+		   <input type="text" title="Add a username" style="width:20%" maxlength="15" name="ADD_CLIENT" id="ADD_CLIENT">
+   		   <input type="text" title="Add a password for the iOS cert" style="width:20%" maxlength="15" name="PASSWORD_PKCS12" id="PASSWORD_PKCS12" disabled="disabled">
 		 <?endif;?>
 		</td>
 	 </tr>
@@ -1262,7 +1245,7 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
 
 <br></br>
 	<tr>
-	<td><textarea class="tooltip" title="OpenVPN log" wrap="hard" readonly="yes" style="width: 500px; height: 140px;color: blue;font-size: 8pt"><?php echo $openvpn_log; ?></textarea></td>
+	<td><textarea class="tooltip" title="OpenVPN log" wrap="hard" readonly="yes" style="width: 450px; height: 140px;color: blue;font-size: 8pt"><?php echo $openvpn_log; ?></textarea></td>
 	</tr>
 	<br></br>
   <?endif;?>		
@@ -1270,7 +1253,7 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
   
 <?if ($openvpnserver_running != "yes"):?>  
  	 <tr>
-	 <td><textarea class="tooltip" title="OpenVPN add client log: when rovoke a client, you are geting an error on last line. That is what you want to see, as it indicates that a certificate verification of the revoked certificate failed" wrap="hard" readonly="yes" style="width: 500px; height: 160px;color: blue;font-size: 8pt"><?php echo $add_client_log; ?></textarea></td>
+	 <td><textarea class="tooltip" title="OpenVPN add client log: when rovoke a client, you are geting an error on last line. That is what you want to see, as it indicates that a certificate verification of the revoked certificate failed" wrap="hard" readonly="yes" style="width: 450px; height: 160px;color: blue;font-size: 8pt"><?php echo $add_client_log; ?></textarea></td>
 	 </tr>
   <?endif;?>
 <?endif;?>
@@ -1283,7 +1266,7 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
      <div>
      <br></br>     
     	<tr>
-      <td><textarea class="tooltip" title="Information from 'ip route show'  is displayed here.." wrap="hard" readonly="yes" style="width: 570px; height: 130px;color: blue;font-size: 8pt"><?php echo $check_netstat; ?></textarea></td>
+      <td><textarea class="tooltip" title="Information from 'ip route show'  is displayed here.." wrap="hard" readonly="yes" style="width: 450px; height: 130px;color: blue;font-size: 8pt"><?php echo $check_netstat; ?></textarea></td>
 	    </tr>
      </div>     
   <?endif;?>
@@ -1353,7 +1336,7 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
 </div> 
 
     
-<div style="width: 47%; float:right; border: 0px solid black;">
+<div style="width: 47%; float:right">
    <div id="title">
      <span class="left">OpenVPN Server/Daemon Configuration:&nbsp;<img src='/boot/config/plugins/openvpnserver/New_config.png'>
     </div>  
@@ -1437,7 +1420,7 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
 	<tr>   
       
       <tr>
-      <td>Path to store server config and cert's</td>
+      <td>Path to store server config files</td>
       <td>
       <input type="text" name="SERVER_PATH" id="SERVER_PATH" value="<?=$openvpnserver_cfg['SERVER_PATH'];?>" title="">
       </td>
@@ -1496,7 +1479,7 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
       </tr>
   
       <tr>
-      <td><a <span class="classic">Port for the server</span></a></td>
+      <td>Port for the server</td>
       <td>
       <input type="text" style="width:17%" maxlength="5" name="SERVER_PORT" id="SERVER_PORT" value="<?=$openvpnserver_cfg['SERVER_PORT'];?>" title="You will need to open up this port on your firewall or router">
       </td>
@@ -1588,12 +1571,12 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
   <tr>
    <?if ($openvpnserver_running=="yes"):?>
     <tr>
-     <td><textarea class="tooltip" title="OpenVPN status" wrap="hard" readonly="yes" style="width: 580px; height: 160px;color: blue;font-size: 8pt"><?php echo $openvpnststus_log; ?></textarea></td>
+     <td><textarea class="tooltip" title="OpenVPN status" wrap="hard" readonly="yes" style="width: 440px; height: 160px;color: blue;font-size: 8pt"><?php echo $openvpnststus_log; ?></textarea></td>
     </tr>
 
      <br></br>
 	<tr>
-	<td><textarea class="tooltip" title="OpenVPN log" wrap="hard" readonly="yes" style="width: 580px; height: 160px;color: blue;font-size: 8pt"><?php echo $openvpn_log; ?></textarea></td>
+	<td><textarea class="tooltip" title="OpenVPN log" wrap="hard" readonly="yes" style="width: 440px; height: 160px;color: blue;font-size: 8pt"><?php echo $openvpn_log; ?></textarea></td>
 	</tr>
 	<br></br>
     <?endif;?>
