@@ -1,7 +1,7 @@
 <?xml version='1.0' standalone='yes'?>
 
 <!DOCTYPE PLUGIN [
-<!ENTITY plgver "2.0.10">
+<!ENTITY plgver "2.0.11">
 ]>
 
 <PLUGIN>
@@ -79,6 +79,7 @@ rm -rf /dev/net
 mkdir /dev/net
 mknod /dev/net/tun c 10 200
 echo 1 > /proc/sys/net/ipv4/ip_forward
+mkdir /var/run/openvpnserver/
 rm -f /var/local/emhttp/plugins/openvpnserver/openvpnserver-cleanup
 ]]>
 </INLINE>
@@ -95,20 +96,6 @@ wget http://ipecho.net/plain -O - -q ; echo
 </INLINE>
 </FILE>
 
-<FILE Name="/var/local/emhttp/plugins/openvpnserver/temp.txt" Mode="0770">
-<INLINE>
-<![CDATA[
-]]>
-</INLINE>
-</FILE>
-
-<FILE Name="/var/run/openvpnserver/temp.txt" Mode="0770">
-<INLINE>
-<![CDATA[
-]]>
-</INLINE>
-</FILE>
-
 <FILE Name="/boot/config/plugins/openvpnserver/openvpnserver.cfg">
 <INLINE>
 <![CDATA[
@@ -116,7 +103,6 @@ wget http://ipecho.net/plain -O - -q ; echo
 INSTALL_ON_BOOT="disable"
 DISCONNECT_ON_UMOUNT="no"
 SERVER_PATH=/mnt/cache/server
-SERVER_MODE=tun
 NETWORK=10.8.0.0
 NETMASK=255.255.255.0
 SERVER_PORT=1194
@@ -125,14 +111,14 @@ PROTOCOL=udp
 CHIPHER=""
 CLIENT="Enable"
 HASH_ALGO=""
-GATEWAY="Disable"
-SUBNET="Disable"
-LAN_SUBNET="Enable"
+GATEWAY="redirect-gateway def1"
+SUBNET="topology subnet"
+LAN_SUBNET="Disable"
 COMP_LZO="comp-lzo"
 IPP="ipp.txt"
 DHCP_1="dhcp-option DNS 8.8.8.8"
-DHCP_2=""
 TELNET_CONSOLE="no"
+VERB="verb 3"
 ]]>
 </INLINE>
 </FILE>
@@ -162,9 +148,8 @@ KEY_PATH=/mnt/cache/openvpnserver_cert
 openvpnserver_cert_updatecfg()
 {
 # Arguments file used for WEBUI configuration update
-  ARGUMENTS_FILE="/usr/local/emhttp/plugins/openvpnserver/openvpnserver_cert.args"
-
-  [ -f $ARGUMENTS_FILE ] && source $ARGUMENTS_FILE
+ARGUMENTS_FILE="/usr/local/emhttp/plugins/openvpnserver/openvpnserver_cert.args"
+[ -f $ARGUMENTS_FILE ] && source $ARGUMENTS_FILE
 
 KEY_COUNTRY=$KEY_COUNTRY_NEW
 KEY_PROVINCE=$KEY_PROVINCE_NEW
@@ -197,14 +182,13 @@ write_cfg_cert()
 openvpnserver_updatecfg()
 {
 # Arguments file used for WEBUI configuration update
-  ARGUMENTS_FILE="/usr/local/emhttp/plugins/openvpnserver/openvpnserver.args"
+ARGUMENTS_FILE="/usr/local/emhttp/plugins/openvpnserver/openvpnserver.args"
 
-  [ -f $ARGUMENTS_FILE ] && source $ARGUMENTS_FILE
+[ -f $ARGUMENTS_FILE ] && source $ARGUMENTS_FILE
 
 INSTALL_ON_BOOT=$INSTALL_ON_BOOT_NEW
 DISCONNECT_ON_UMOUNT=$DISCONNECT_ON_UMOUNT_NEW
 SERVER_PATH=$SERVER_PATH_NEW
-SERVER_MODE=$SERVER_MODE_NEW
 NETWORK=$NETWORK_NEW
 NETMASK=$NETMASK_NEW
 SERVER_PORT=$SERVER_PORT_NEW
@@ -219,11 +203,10 @@ LAN_SUBNET=$LAN_SUBNET_NEW
 COMP_LZO=$COMP_LZO_NEW
 IPP=$IPP_NEW
 DHCP_1=$DHCP_1_NEW
-DHCP_2=$DHCP_2_NEW
 TELNET_CONSOLE=$TELNET_CONSOLE_NEW
+VERB=$VERB_NEW
 
   write_cfg
-  
 }
 
 #################
@@ -235,7 +218,6 @@ write_cfg()
   echo "INSTALL_ON_BOOT=\"$INSTALL_ON_BOOT\"" >> /boot/config/plugins/openvpnserver/openvpnserver.cfg
   echo "DISCONNECT_ON_UMOUNT=\"$DISCONNECT_ON_UMOUNT\"" >> /boot/config/plugins/openvpnserver/openvpnserver.cfg
   echo "SERVER_PATH=$SERVER_PATH" >> /boot/config/plugins/openvpnserver/openvpnserver.cfg
-  echo "SERVER_MODE=$SERVER_MODE" >> /boot/config/plugins/openvpnserver/openvpnserver.cfg
   echo "NETWORK=$NETWORK" >> /boot/config/plugins/openvpnserver/openvpnserver.cfg
   echo "NETMASK=$NETMASK" >> /boot/config/plugins/openvpnserver/openvpnserver.cfg
   echo "SERVER_PORT=$SERVER_PORT" >> /boot/config/plugins/openvpnserver/openvpnserver.cfg
@@ -250,46 +232,62 @@ write_cfg()
   echo "COMP_LZO=\"$COMP_LZO\"" >> /boot/config/plugins/openvpnserver/openvpnserver.cfg  
   echo "IPP=\"$IPP\"" >> /boot/config/plugins/openvpnserver/openvpnserver.cfg
   echo "DHCP_1=\"$DHCP_1\"" >> /boot/config/plugins/openvpnserver/openvpnserver.cfg
-  echo "DHCP_2=\"$DHCP_2\"" >> /boot/config/plugins/openvpnserver/openvpnserver.cfg
   echo "TELNET_CONSOLE=\"$TELNET_CONSOLE\"" >> /boot/config/plugins/openvpnserver/openvpnserver.cfg
+  echo "VERB=\"$VERB\"" >> /boot/config/plugins/openvpnserver/openvpnserver.cfg
   
-
   logger -trc.openvpnserver -plocal7.info -is "Plugin configuration written"
 }
 
 openvpnserver_start()
 {
-	rm -f /var/local/emhttp/plugins/openvpnserver/add_client.log
+rm -f /var/local/emhttp/plugins/openvpnserver/add_client.log
 	
 if [ ! -f /var/run/openvpnserver/openvpnserver.pid ]; then
-    echo "Starting Openvpn server....."
-		source /boot/config/plugins/openvpnserver/openvpnserver.cfg
-		echo "sudo openvpn --writepid /var/run/openvpnserver/openvpnserver.pid --config $SERVER_PATH/openvpnserver.ovpn --script-security 2 --daemon 2>&1 &" > /var/local/emhttp/plugins/openvpnserver/openvpnserver.sh
-		chmod 777 /var/local/emhttp/plugins/openvpnserver/openvpnserver.sh
-		sleep 0.5
-		nohup /var/local/emhttp/plugins/openvpnserver/openvpnserver.sh > /var/local/emhttp/plugins/openvpnserver/openvpnserver.out /dev/null & 
-		sleep 1
-		echo "OK... Started" 
+    	echo "Starting Openvpn server....."
+	source /boot/config/plugins/openvpnserver/openvpnserver.cfg
+	echo "sudo openvpn --writepid /var/run/openvpnserver/openvpnserver.pid --config $SERVER_PATH/openvpnserver.ovpn --script-security 2 --daemon 2>&1 &" > /var/local/emhttp/plugins/openvpnserver/openvpnserver.sh
+	chmod 777 /var/local/emhttp/plugins/openvpnserver/openvpnserver.sh
+	sleep 0.5
+	nohup /var/local/emhttp/plugins/openvpnserver/openvpnserver.sh > /var/local/emhttp/plugins/openvpnserver/openvpnserver.out /dev/null & 
+	sleep 1
+	
+	if [ -f /var/run/openvpnserver/openvpnserver.pid ]; then
+		echo "OK... Started"
+		echo "Adding iptables rule ....."
+		openvpnserver_iptables_add; 
+ 	else
+ 		echo "An error occurred, server not started!. More info on /var/log/openvpnserver.log"
+ 	fi
+ 
  else
-    echo "Server already started"
+        echo "Server already started"
  fi
 }
 
 openvpnserver_stop()
 {
-  if [ -e /var/run/openvpnserver/openvpnserver.pid ]; then
-     echo "Stoping Openvpnserver....."
-	   kill $(cat /var/run/openvpnserver/openvpnserver.pid)
-	   sleep 2
-	   rm -f /var/run/openvpnserver/openvpnserver.pid
-	   rm -rf /var/local/emhttp/plugins/openvpnserver/openvpnserver.out
-	   rm -rf /var/log/openvpnserver.log
-	   rm -rf /var/log/openvpnserver-status.log
-	   echo "... Stopped"
-  else
-     echo "Server already stoped"
-  fi
+if [ -e /var/run/openvpnserver/openvpnserver.pid ]; then
+   echo "Stoping Openvpnserver....."
+   kill $(cat /var/run/openvpnserver/openvpnserver.pid)
+   sleep 2
+   rm -f /var/run/openvpnserver/openvpnserver.pid
+   rm -rf /var/local/emhttp/plugins/openvpnserver/openvpnserver.out
+   rm -rf /var/log/openvpnserver.log
+   rm -rf /var/log/openvpnserver-status.log
+   echo "... Stopped"
+   echo "Deleting iptables rule ...."
+   openvpnserver_iptables_delete;
+else
+  echo "Server already stoped"
+fi
 }
+
+openvpnserver_restart()
+{
+ openvpnserver_stop;
+ openvpnserver_start;
+}
+
 
 write_openvpn_conf()
 {
@@ -304,8 +302,13 @@ else
 	chmod 755 $KEY_DIR	
 fi
 
+
 echo "server $NETWORK $NETMASK" > $SERVER_PATH/openvpnserver.ovpn
-echo "dev $SERVER_MODE" >> $SERVER_PATH/openvpnserver.ovpn
+
+LOCAL_SERVER_IP=$(/etc/rc.d/rc.openvpnserver serverip)
+echo "local $LOCAL_SERVER_IP" >> $SERVER_PATH/openvpnserver.ovpn
+
+echo "dev tun" >> $SERVER_PATH/openvpnserver.ovpn
 echo "port $SERVER_PORT" >> $SERVER_PATH/openvpnserver.ovpn
 echo "proto $PROTOCOL" >> $SERVER_PATH/openvpnserver.ovpn
 echo "dh $SERVER_PATH/dh2048.pem" >> $SERVER_PATH/openvpnserver.ovpn
@@ -321,25 +324,25 @@ echo "ca $SERVER_PATH/ca.crt" >> $SERVER_PATH/openvpnserver.ovpn
 echo "cert $SERVER_PATH/server.crt" >> $SERVER_PATH/openvpnserver.ovpn
 echo "key $SERVER_PATH/server.key" >> $SERVER_PATH/openvpnserver.ovpn
 
-if [ "$GATEWAY" != "Disable" ]; then
-    echo "push "\"$GATEWAY"\"" >> $SERVER_PATH/openvpnserver.ovpn
-fi
 
 if [ "$IPP" == "ipp.txt" ]; then  
 	echo "ifconfig-pool-persist "$SERVER_PATH/$IPP >> $SERVER_PATH/openvpnserver.ovpn
 fi
 
-if [ "$DHCP_1" != "" ]; then
+if [ "$DHCP_1" == "dhcp-option DNS 8.8.8.8" ]; then
 	echo "push "\"$DHCP_1"\"" >> $SERVER_PATH/openvpnserver.ovpn
+	
+else
+	LOCAL_GW=$(/etc/rc.d/rc.openvpnserver get_gw) 
+	echo "push "\"dhcp-option DNS $LOCAL_GW"\"" >> $SERVER_PATH/openvpnserver.ovpn
 fi
-
-if [ "$DHCP_2" != "" ]; then
-	echo "push "\"$DHCP_2"\"" >> $SERVER_PATH/openvpnserver.ovpn
+	
+if [ "$GATEWAY" != "Disable" ]; then
+	echo "push "\"$GATEWAY"\"" >> $SERVER_PATH/openvpnserver.ovpn
 fi
-
+	
 echo "tls-server" >> $SERVER_PATH/openvpnserver.ovpn
-#echo "ns-cert-type server" >> $SERVER_PATH/openvpnserver.ovpn
-echo "verb 3" >> $SERVER_PATH/openvpnserver.ovpn
+echo "$VERB" >> $SERVER_PATH/openvpnserver.ovpn
 echo "tls-auth $SERVER_PATH/ta.key 0" >> $SERVER_PATH/openvpnserver.ovpn
 echo "persist-key" >> $SERVER_PATH/openvpnserver.ovpn
 echo "persist-tun" >> $SERVER_PATH/openvpnserver.ovpn
@@ -347,8 +350,6 @@ echo "keepalive 10 120" >> $SERVER_PATH/openvpnserver.ovpn
 
 echo "user nobody" >> $SERVER_PATH/openvpnserver.ovpn
 echo "group users" >> $SERVER_PATH/openvpnserver.ovpn
-
-#echo "mute 5" >> $SERVER_PATH/openvpnserver.ovpn
 
 if [ "$CHIPHER" != "" ]; then    
 	echo "$CHIPHER" >> $SERVER_PATH/openvpnserver.ovpn
@@ -375,16 +376,18 @@ fi
 if [ "$LAN_SUBNET" = "Enable" ]; then    
 	LANSUBNET=$(/etc/rc.d/rc.openvpnserver get_subnet)
 	echo "push "\"route $LANSUBNET 255.255.255.0"\"" >> $SERVER_PATH/openvpnserver.ovpn
-	echo "push "\"resolv-retry infinite"\"" >> $SERVER_PATH/openvpnserver.ovpn
+	IP_ADDR="`echo $NETWORK | rev | sed s'/0/1/' | rev`"
+#	echo "push "\"route $LANSUBNET 255.255.255.0 $IP_ADDR"\"" >> $SERVER_PATH/openvpnserver.ovpn
 fi
 
+echo "push "\"resolv-retry infinite"\"" >> $SERVER_PATH/openvpnserver.ovpn
 echo "status /var/log/openvpnserver-status.log 5" >> $SERVER_PATH/openvpnserver.ovpn
 echo "log-append /var/log/openvpnserver.log" >> $SERVER_PATH/openvpnserver.ovpn
 echo "status-version 2" >> $SERVER_PATH/openvpnserver.ovpn
 
 if [ "$TELNET_CONSOLE" = "yes" ]; then
 	SERVERIP=$(/etc/rc.d/rc.openvpnserver serverip)
-	echo "management $SERVERIP 5902" >> $SERVER_PATH/openvpnserver.ovpn
+	echo "management $SERVERIP 10000" >> $SERVER_PATH/openvpnserver.ovpn
 fi
 
 }
@@ -394,13 +397,13 @@ check_pem()
 source /boot/config/plugins/openvpnserver/openvpnserver.cfg
 source /boot/config/plugins/openvpnserver/openvpnserver_cert.cfg
 
-	if [[ -f "$KEY_PATH/keys/crl.pem" ]] ; then
-		if grep "crl-verify" $SERVER_PATH/openvpnserver.ovpn >/dev/null; then
-			echo "OK"
-		else
-			echo "UPDATE"
-		fi	
-	fi
+if [[ -f "$KEY_PATH/keys/crl.pem" ]] ; then
+	if grep "crl-verify" $SERVER_PATH/openvpnserver.ovpn >/dev/null; then
+		echo "OK"
+	else
+		echo "UPDATE"
+	fi	
+fi
 }
 
 openvpnserver_get_def_gw()
@@ -493,11 +496,8 @@ if [[ $CANONICAL != "" ]]; then
 fi	
 
 cd $SERVER_PATH/easy-rsa-master/easy-rsa/2.0/
-
 source ./vars
-
 cd $KEY_DIR
-	
 client=$1
 
 #KEY_CN=$client KEY_EMAIL=$KEY_CN@acme $SERVER_PATH/easy-rsa-master/easy-rsa/2.0/pkitool $KEY_CN
@@ -510,7 +510,7 @@ remote $INTERNET_IP
 $CHIPHER
 $HASH_ALG
 client
-dev $SERVER_MODE
+dev tun
 proto $PROTOCOL
 port $PORT
 resolv-retry infinite
@@ -524,38 +524,38 @@ key $client.key
 tls-auth ta.key 1
 remote-cert-tls server
 $COMP_LZO
-verb 3
+$VERB
 route-delay 2
 END
 #*****END ****
 
- if [[ $2 == "" ]]; then
+if [[ $2 == "" ]]; then
 	zip $CLI_DIR/$client.zip $client.ovpn $client.crt $client.key ca.crt ta.key		
- fi
+fi
 
 chmod -R 755 $KEY_PATH
 
-  if [[ $2 != "" ]]; then  # this is for pkcs12 file (IOS ..)
-		echo "#!/usr/bin/expect -f" > $KEY_DIR/pkcs12.sh
-		echo "#! /bin/bash" >> $KEY_DIR/pkcs12.sh
-		#echo "#exp_internal 1" >> $KEY_DIR/pkcs12.sh
-		echo "spawn openssl pkcs12 -export -in $client.crt -inkey $client.key -certfile ca.crt -name $client -out $client.p12" >> $KEY_DIR/pkcs12.sh
-		echo "expect \"Enter Export Password:\"" >> $KEY_DIR/pkcs12.sh
-		echo "send \"$2\r\"" >> $KEY_DIR/pkcs12.sh
-		echo "sleep 1" >> $KEY_DIR/pkcs12.sh
-		echo "expect \"Verifying - Enter Export Password:\"" >> $KEY_DIR/pkcs12.sh
-		echo "send \"$2\r\"" >> $KEY_DIR/pkcs12.sh
-		echo "sleep 1" >> $KEY_DIR/pkcs12.sh
-		echo "expect eof" >> $KEY_DIR/pkcs12.sh
+if [[ $2 != "" ]]; then  # this is for pkcs12 file (IOS ..)
+	echo "#!/usr/bin/expect -f" > $KEY_DIR/pkcs12.sh
+	echo "#! /bin/bash" >> $KEY_DIR/pkcs12.sh
+	#echo "#exp_internal 1" >> $KEY_DIR/pkcs12.sh
+	echo "spawn openssl pkcs12 -export -in $client.crt -inkey $client.key -certfile ca.crt -name $client -out $client.p12" >> $KEY_DIR/pkcs12.sh
+	echo "expect \"Enter Export Password:\"" >> $KEY_DIR/pkcs12.sh
+	echo "send \"$2\r\"" >> $KEY_DIR/pkcs12.sh
+	echo "sleep 1" >> $KEY_DIR/pkcs12.sh
+	echo "expect \"Verifying - Enter Export Password:\"" >> $KEY_DIR/pkcs12.sh
+	echo "send \"$2\r\"" >> $KEY_DIR/pkcs12.sh
+	echo "sleep 1" >> $KEY_DIR/pkcs12.sh
+	echo "expect eof" >> $KEY_DIR/pkcs12.sh
 				
-		sleep 0.5
+	sleep 0.5
 
-		chmod a+x pkcs12.sh
-		sleep 0.5		
-		#execute above script
-		nohup sudo $KEY_DIR/pkcs12.sh >> /var/local/emhttp/plugins/openvpnserver/openvpnserver.out /dev/null
+	chmod a+x pkcs12.sh
+	sleep 0.5		
+	#execute above script
+	nohup sudo $KEY_DIR/pkcs12.sh >> /var/local/emhttp/plugins/openvpnserver/openvpnserver.out /dev/null
 		
-		sleep 7		
+	sleep 7		
 
 		#modify the client ovpn file to work with IOS
 				
@@ -598,7 +598,7 @@ chmod -R 755 $KEY_PATH
 		sudo chmod 400 {$client.p12,$client.ovpn,README.txt}
 		echo "Creating a zip file for the client"	
 		zip $CLI_DIR/$client.zip $client.p12 $client.ovpn README.txt				
-  fi
+fi
 }	
 	
 openvpnserver_create_server_cert()
@@ -740,16 +740,16 @@ echo "The vars file was updated successful!!"
 
 openvpnserver_getver()
 {
-  if [[ ! -z $1 ]]; then
+if [[ ! -z $1 ]]; then
     openvpnserver_plgver $1
-  else
+else
     echo "usage $0 getver local|remote"
-  fi
+fi
 }
 
 openvpnserver_plgver()
 {
- case "$1" in
+case "$1" in
  'local')
    if [ -f /boot/config/plugins/openvpn_server_x64.plg ]; then
       VERSION=$(grep "<\!ENTITY plgver" /boot/config/plugins/openvpn_server_x64.plg | cut -d\" -f2)
@@ -759,9 +759,9 @@ openvpnserver_plgver()
   ;;
    'remote')
      VERSION=$(wget --no-check-certificate -q https://raw.github.com/petersm1/openvpn_server_x64/master/openvpn_server_x64.plg -O - | grep "<\!ENTITY plgver" | cut -d\" -f2)
-      if [ "$VERSION" == "" ]; then
+     if [ "$VERSION" == "" ]; then
         VERSION=Unknown
-      fi
+     fi
     ;;
   esac
   echo -n "$VERSION"
@@ -775,46 +775,46 @@ server_IP()
  
 openvpnserver_updateplg()
 {
- cd /boot/config/plugins
-   [ -f openvpn_server_x64.plg.old ] && rm -f openvpn_server_x64.plg.old
-    openvpnserver_stop;
+cd /boot/config/plugins
+[ -f openvpn_server_x64.plg.old ] && rm -f openvpn_server_x64.plg.old
+openvpnserver_stop;
 
-   if [ -f openvpn_server_x64.plg ]; then
-	   mv openvpn_server_x64.plg openvpn_server_x64.plg.old
-	   echo "Updating plugin"
-	   wget -q --no-check-certificate https://github.com/petersm1/openvpn_server_x64/raw/master/openvpn_server_x64.plg
-	   /usr/local/sbin/installplg /boot/config/plugins/openvpn_server_x64.plg
-    else
-	    echo "Updating plugin"
-	    wget -q --no-check-certificate https://github.com/petersm1/openvpn_server_x64/raw/master/openvpn_server_x64.plg
-	    /usr/local/sbin/installplg /boot/config/plugins/openvpn_server_x64.plg
-           openvpnserver_start;
-   fi
+if [ -f openvpn_server_x64.plg ]; then
+	mv openvpn_server_x64.plg openvpn_server_x64.plg.old
+	echo "Updating plugin"
+	wget -q --no-check-certificate https://github.com/petersm1/openvpn_server_x64/raw/master/openvpn_server_x64.plg
+	/usr/local/sbin/installplg /boot/config/plugins/openvpn_server_x64.plg
+else
+	echo "Updating plugin"
+	wget -q --no-check-certificate https://github.com/petersm1/openvpn_server_x64/raw/master/openvpn_server_x64.plg
+	/usr/local/sbin/installplg /boot/config/plugins/openvpn_server_x64.plg
+        openvpnserver_start;
+fi
 }
 
 openvpnserver_downgradeplg()
 {
 cd /boot/config/plugins
-    if [ -f openvpn_server_x64.plg.old ]; then
-      openvpnserver_stop;
+if [ -f openvpn_server_x64.plg.old ]; then
+      	openvpnserver_stop;
 	rm -f /openvpn_server_x64.plg
 	mv openvpn_server_x64.plg.old openvpn_server_x64.plg
 	echo "downgrading plugin"
 	/usr/local/sbin/installplg /boot/config/plugins/openvpn_server_x64.plg
-      openvpnserver_start;
-    fi
+      	openvpnserver_start;
+fi
 } 
  
 openvpnserver_getonlineversion()
 {
-  OPEN_VPN_HOSTING_SERVER="http://openvpn.net/index.php/open-source/downloads.html"
-  OPEN_VPN_ONLINE_VER=$(wget ${OPEN_VPN_HOSTING_SERVER} -q --no-check-certificate -O - |grep "Change Log" | awk 'gsub(/.*OpenVPN | -- released on.*/,"")')
-  echo "${OPEN_VPN_ONLINE_VER:0:6}"
+OPEN_VPN_HOSTING_SERVER="http://openvpn.net/index.php/open-source/downloads.html"
+OPEN_VPN_ONLINE_VER=$(wget ${OPEN_VPN_HOSTING_SERVER} -q --no-check-certificate -O - |grep "Change Log" | awk 'gsub(/.*OpenVPN | -- released on.*/,"")')
+echo "${OPEN_VPN_ONLINE_VER:0:6}"
 }
 
 openvpnserver_getlocalversion()
 {
- if [ -e /usr/sbin/openvpn ];
+if [ -e /usr/sbin/openvpn ];
    then
      OPEN_VPN_INSTALLED=$(openvpn --version | grep "OpenVPN " | awk 'gsub(/.*i4 | x.*/,"")')
      #echo $OPEN_VPN_INSTALLED
@@ -823,7 +823,7 @@ openvpnserver_getlocalversion()
 }
 
 openvpnserver_view_online_user() {
-VIEW_ONLINE_USER="` grep -P "CLIENT_LIST," /var/log/openvpnserver-status.log | sed -r 's/^[^,]+,+((,*[^,]+){1}).*/\1/' |  grep -Eiv "CLIENT_LIST"`"
+VIEW_ONLINE_USER="` grep -P "CLIENT_LIST," /var/log/openvpnserver-status.log | sed -r 's/^[^,]+,+((,*[^,]+){1}).*/\1/' |  grep -Eiv "CLIENT_LIST" | sed 's/$/\ ; /'`"
 if [ "$VIEW_ONLINE_USER" == "" ]
    then
       echo "NO CLIENTS CONECTED"
@@ -840,7 +840,7 @@ if [ -f $KEY_PATH/keys/index.txt ]; then
     if [ "$VIEW_VALID_USER" == "" ]
       then
         echo "NO CLIENTS CREATED YET"
-      else
+    else
        echo "$VIEW_VALID_USER" 
     fi
 fi 
@@ -858,7 +858,46 @@ if [ -f $KEY_PATH/keys/index.txt ]; then
         echo "$VIEW_REVOKED_USER"
      fi
 fi
+}
 
+openvpnserver_iptables_add() {
+source /boot/config/plugins/openvpnserver/openvpnserver.cfg
+source  /boot/config/network.cfg
+
+LANSUBNET=$(/etc/rc.d/rc.openvpnserver get_subnet)
+IPRULES="iptables -t nat -A POSTROUTING -s $NETWORK/24 -d $LANSUBNET/24 -j MASQUERADE"
+eval $IPRULES
+
+NEWBRIDGING=`echo -n $BRIDGING|  tr -d '\r'`
+NEWBRNAME=`echo -n $BRNAME|  tr -d '\r'`
+
+if [ $NEWBRIDGING == "yes" ] ; then
+	IPRULES1="iptables -t nat -A POSTROUTING -s $NETWORK/24 -o $NEWBRNAME -j MASQUERADE"
+	eval $IPRULES1
+else
+	IPRULES1="iptables -t nat -A POSTROUTING -s $NETWORK/24 -o eth0 -j MASQUERADE"
+	eval $IPRULES1
+fi
+
+iptables -t nat -L POSTROUTING -n -v --line-numbers | grep $NETWORK
+}
+
+openvpnserver_iptables_delete() {
+
+for line_num in $(iptables -vn -t nat --line-numbers --list POSTROUTING |grep $NETWORK|awk '{print $1}')
+
+do
+  LINES="$line_num $LINES"
+done
+
+# Delete the lines, last to first.
+for line in $LINES
+do
+  sudo iptables -t nat -D POSTROUTING $line
+done
+
+unset LINES
+iptables -t nat -L POSTROUTING -n -v --line-numbers | grep $NETWORK
 }
 
 # read our configuration
@@ -876,6 +915,9 @@ case "$1" in
     ;;
   'stop')
     openvpnserver_stop
+    ;;
+  'restart')
+    openvpnserver_restart
     ;;
   'writeconf')
     write_openvpn_conf
@@ -931,10 +973,15 @@ case "$1" in
     'view_revoked_user')
    openvpnserver_view_revoked_user
    ;;
-   
+    'iptables')
+   openvpnserver_iptables_add
+   ;;
+     'iptablesd')
+   openvpnserver_iptables_delete
+   ;;
   *)
     
-    echo "usage $0 start|stop|download_easy-rsa|create_server_cert|add_client 'name'|add_client 'name' 'password|revoke_client 'name'|view_valid_user|view_online_user|view_revoked_user"
+    echo "usage $0 start|stop|restart|download_easy-rsa|create_server_cert|add_client 'name'|add_client 'name' 'password|revoke_client 'name'|view_valid_user|view_online_user|view_revoked_user"
 esac
 
 ]]>
@@ -948,7 +995,7 @@ Icon="Openvpn.png"
 Version=&plgver;
 Author="Peter_sm"
 Type="php"
-Title="OpenVPN Server"
+Title="OpenVPN Server TUN mode"
 </INLINE>
 </FILE>
 
@@ -1001,7 +1048,8 @@ $check_netstat = shell_exec("ip route show");
 $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
 
  if (trim($CHECK_PEM) == "UPDATE" ){
- 	echo '<script type="text/javascript">alert("You have revoked your firts client!, now you must update your openvpnserver.ovpn, you do that on the server config section on the plugin UI") </script>';
+ 	echo '<script type="text/javascript">alert("You have revoked your firts client!, your openvpnserver.ovpn have been updated") </script>';
+ 	shell_exec("/etc/rc.d/rc.openvpnserver writeconf");
  	}
 
  if (file_exists('/var/local/emhttp/plugins/openvpnserver/add_client.log'))
@@ -1013,12 +1061,12 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
  if (file_exists('/var/log/openvpnserver.log')) 
    {$openvpn_log = file_get_contents('/var/log/openvpnserver.log');} 
 
-?>		
+?>	
+
 <HTML>
 <HEAD></HEAD>
 <BODY>
-
-<div style="width: 47%; float:left">
+<div style="width: 49%; float:left">
  <div id="title">
     <span class="left">Status:&nbsp;<img src='/boot/config/plugins/openvpnserver/device_status.png'>
       <?if ($openvpnserver_running=="yes"):?>
@@ -1067,9 +1115,9 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
     <table>      
       <tr style="font-weight:bold; color:#333333; background:#F0F0F0; text-shadow:0 1px 1px #FFFFFF;">
         <td>WAN IP</td>
-        <td>SERVER IP</td>
-        <td>ROUTER IP</td>
-        <td>VPN SERVER IP</td>
+        <td>unRAID server IP</td>
+        <td>LAN Gateway</td>
+        <td>VPN Server IP</td>
       </tr>
       <tr style="font-weight:bold; background:#FFFFFF;">
         <td>         
@@ -1084,8 +1132,7 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
         <td>         
             <span class="green-text"><?=$VPN_SERVER_IP?></span>
         </td>      
-
-      </tr>      
+    </tr>      
     </table>
   </div>  
   <br></br>
@@ -1206,7 +1253,7 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
  </table>
 </div>
 
-<br></br>  
+ 
 
 <?if (($ovpncertsoftware=="yes") && ($ovpncertsfolder=="yes") && ($openvpnserver_config=="yes")):?> 
 <?if ($openvpnserver_running != "yes"):?>  
@@ -1336,7 +1383,7 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
 </div> 
 
     
-<div style="width: 47%; float:right">
+<div style="width: 49%; float:right">
    <div id="title">
      <span class="left">OpenVPN Server/Daemon Configuration:&nbsp;<img src='/boot/config/plugins/openvpnserver/New_config.png'>
     </div>  
@@ -1369,7 +1416,7 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
         
  <? if (($openvpnserver_rollback=="yes") && ($updates_exist=="false")) : ?>
     <table>
-	    <form name="openvpnserver_downgrade" method="POST" action="/update.htm" target="progressFrame">
+	    <form name="openvpnserver_downgrade" method="POST" action="/update.htm" target="progressFrame" onsubmit="validateForm()>
 	     <input type="hidden" name="cmd" value="/etc/rc.d/rc.openvpnserver downgradeplg">
        <input type="submit" name="runCmd" title="Downgrade to previuse plugin version"  value="Downgrade PLG">
 	    </form>
@@ -1389,8 +1436,6 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
 <form name="openvpnserver_settings" method="POST" action="/plugins/openvpnserver/openvpnserver_submit.php" target="progressFrame" onsubmit="validateForm();">
  <table>   
    <?if ($openvpnserver_running != "yes"):?> 
-    
-    
       <tr>
       <td colspan="2" align="left">
        <?if ($openvpnserver_running != "yes"):?>
@@ -1425,14 +1470,7 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
       <input type="text" name="SERVER_PATH" id="SERVER_PATH" value="<?=$openvpnserver_cfg['SERVER_PATH'];?>" title="">
       </td>
       </tr>   
-            
-      <tr>
-      <td>Server mode</td>
-      <td><select name="SERVER_MODE" title="will create a routed IP tunnel" id="SERVER_MODE" size="1">
-      <?=mk_option($openvpnserver_cfg['SERVER_MODE'], "tun", "Tun");?>
-      </select></td>
-      </tr>
-      
+                  
       <tr>
       <td>Dynamic DNS</td>
       <td>
@@ -1441,12 +1479,14 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
       </tr> 
      
       <tr>
-      <td>VPN subnet for OpenVPN server</td>
+      <td id="NETWORK_TEXT">
+          <p>OpenVPN server IP</p>
       <td>
-      <input type="text" style="width:25%" maxlength="15" name="NETWORK" id="NETWORK" value="<?=$openvpnserver_cfg['NETWORK'];?>" title="Default is 10.8.0.0 (for routing), but can be set to any IP you like for the VPN server">
+      <input type="text" style="width:25%" maxlength="15" name="NETWORK" id="NETWORK" value="<?=$openvpnserver_cfg['NETWORK'];?>" title="Default is 10.8.0.0, but can be set to any IP you like for the VPN server, example 10.10.0.0">
+      </td>
       </td>
       </tr> 
-      
+          
       <tr>
       <td>Netmask</td>
       <td>
@@ -1463,21 +1503,16 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
       </tr>   
       
       <tr>
-      <td>Push DHCP 1</td>
+      <td id="DHCP_1_TEXT">
+          <p>Pushing DHCP options to clients</p>
       <td><select name="DHCP_1" id="DHCP_1" size="1">
-      <?=mk_option($openvpnserver_cfg['DHCP_1'], "dhcp-option DNS 8.8.8.8", "dhcp-option DNS 8.8.8.8");?>
+      <?=mk_option($openvpnserver_cfg['DHCP_1'], "dhcp-option DNS 8.8.8.8", "DNS Google");?>
+      <?=mk_option($openvpnserver_cfg['DHCP_1'], "dhcp-option DNS", "DNS Local gateway");?>
       <?=mk_option($openvpnserver_cfg['DHCP_1'], "", "No");?>
-      </select></td>
-      </tr>
+      </select>
+      </td>
+      </tr>         
 
-      <tr>
-      <td>Push DHCP 2</td>
-      <td><select name="DHCP_2" id="DHCP_2" size="1">
-      <?=mk_option($openvpnserver_cfg['DHCP_2'], "dhcp-option DNS 8.8.4.4", "dhcp-option DNS 8.8.4.4");?>
-      <?=mk_option($openvpnserver_cfg['DHCP_2'], "", "No");?>
-      </select></td>
-      </tr>
-  
       <tr>
       <td>Port for the server</td>
       <td>
@@ -1494,19 +1529,19 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
       </tr>
       
       <tr>
-      <td>Encryption Cipher</td>
-      <td><select name="CHIPHER" id="CHIPHER" size="1">
-      <?=mk_option($openvpnserver_cfg['CHIPHER'], "cipher aes-512-cbc", "AES-512 CBC");?>
-      <?=mk_option($openvpnserver_cfg['CHIPHER'], "cipher aes-256-cbc", "AES-256 CBC");?>
-      <?=mk_option($openvpnserver_cfg['CHIPHER'], "cipher bf-cbc", "Blowfish CBC");?>
+      <td>Data Encryption</td>
+      <td><select name="CHIPHER" id="CHIPHER" size="1" title="Sets the encryption algorithm to use in the VPN connection">
+      <?=mk_option($openvpnserver_cfg['CHIPHER'], "cipher des-ede3-cbc", "Tripple-DES");?>
+      <?=mk_option($openvpnserver_cfg['CHIPHER'], "cipher aes-256-cbc", "AES");?>
+      <?=mk_option($openvpnserver_cfg['CHIPHER'], "cipher bf-cbc", "Blowfish");?>
       <?=mk_option($openvpnserver_cfg['CHIPHER'], "", "None");?>
       </select></td>
       </tr>
       
       <tr>
-      <td>Hash Algorithm</td>
+      <td>Data Authentication</td>
       <td><select name="HASH_ALGO" id="HASH_ALGO" size="1">
-      <?=mk_option($openvpnserver_cfg['HASH_ALGO'], "auth sha512", "SHA512");?>
+      <?=mk_option($openvpnserver_cfg['HASH_ALGO'], "auth sha512", "SHA512 ");?>
       <?=mk_option($openvpnserver_cfg['HASH_ALGO'], "auth sha256", "SHA256");?>
       <?=mk_option($openvpnserver_cfg['HASH_ALGO'], "", "None");?>
       </select></td>
@@ -1520,15 +1555,17 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
       </select></td>
       </tr>           
                    
-      <tr>
-      <td>Redirect-gateway </td>
+       <tr>
+      <td id="GATEWAY_TEXT">
+          <p>Redirect-gateway</p>
       <td><select name="GATEWAY" id="GATEWAY" size="1">
       <?=mk_option($openvpnserver_cfg['GATEWAY'], "redirect-gateway", "redirect-gateway");?>
       <?=mk_option($openvpnserver_cfg['GATEWAY'], "redirect-gateway def1", "redirect-gateway def1");?>
       <?=mk_option($openvpnserver_cfg['GATEWAY'], "redirect-gateway def1 bypass-dhcp", "redirect-gateway def1 bypass-dhcp");?>
       <?=mk_option($openvpnserver_cfg['GATEWAY'], "Disable", "No");?>
-      </select></td>
-      </tr>   
+      </select>
+      </td>
+      </tr>         
      
       <tr>
       <td>Topology subnet</td>
@@ -1548,7 +1585,7 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
             
       <tr>
       <td>COMP LZO</td>
-      <td><select name="COMP_LZO" id="COMP_LZO" size="1">
+      <td><select name="COMP_LZO" id="COMP_LZO" size="1" title="Enable compression on the VPN link">
       <?=mk_option($openvpnserver_cfg['COMP_LZO'], "comp-lzo", "Yes");?>
       <?=mk_option($openvpnserver_cfg['COMP_LZO'], "0", "No");?>
       </select></td>
@@ -1556,15 +1593,23 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
       
       <tr>
       <td>TELNET management console</td>
-      <td><select name="TELNET_CONSOLE" id="TELNET_CONSOLE" title="This will get you acess to an TELNET console on UnRAid IP port 5902. Acessing the console, use Putty" size="1">
+      <td><select name="TELNET_CONSOLE" id="TELNET_CONSOLE" title="This will get you acess to an TELNET console on UnRAid IP port 10000. Acessing the console, use Putty" size="1">
       <?=mk_option($openvpnserver_cfg['TELNET_CONSOLE'], "No", "No");?>
       <?=mk_option($openvpnserver_cfg['TELNET_CONSOLE'], "yes", "Yes");?>
       </select></td>
       </tr>
       
+      <tr>
+      <td>LOG settings</td>
+      <td><select name="VERB" id="VERB" title="Verbosity of the log file" size="1">
+      <?=mk_option($openvpnserver_cfg['VERB'], "verb 3", "3");?>
+      <?=mk_option($openvpnserver_cfg['VERB'], "verb 9", "9");?>
+      <?=mk_option($openvpnserver_cfg['VERB'], "verb 15", "15");?>
+      </select></td>
+      </tr>
+
       <br></br> 
-      
-      
+
 <?endif;?>
      
  <div>
@@ -1580,7 +1625,6 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
 	</tr>
 	<br></br>
     <?endif;?>
-
    </tr>
   </div>     
   <br></br>
@@ -1597,12 +1641,13 @@ function IOSCheck(what){
     }
 } 
 
+
 function validateForm() {
   document.getElementById('INSTALL_ON_BOOT').disabled = false;
   document.getElementById('DISCONNECT_ON_UMOUNT').disabled = false;
   document.getElementById('SERVER_PATH').disabled = false;
-  document.getElementById('SERVER_MODE').disabled = false;
   document.getElementById('NETWORK').disabled = false;
+  document.getElementById('NETWORK_TEXT').disabled = false;
   document.getElementById('NETMASK').disabled = false;
   document.getElementById('SERVER_PORT').disabled = false;
   document.getElementById('CANONICAL').disabled = false;
@@ -1616,33 +1661,27 @@ function validateForm() {
   document.getElementById('COMP_LZO').disabled = false;
   document.getElementById('IPP').disabled = false;
   document.getElementById('DHCP_1').disabled = false;
-  document.getElementById('DHCP_2').disabled = false;
   document.getElementById('TELNET_CONSOLE').disabled = false;
-  
-  
- 
+  document.getElementById('VERB').disabled = false;
 }
 
-
 function validateForm_cert() {
-
   document.getElementById('KEY_COUNTRY').disabled = false;
   document.getElementById('KEY_PROVINCE').disabled = false;
   document.getElementById('KEY_CITY').disabled = false;
   document.getElementById('KEY_ORG').disabled = false;
   document.getElementById('KEY_EMAIL').disabled = false;
   document.getElementById('KEY_PATH').disabled = false;  
-  
 }
 
-function checkRUNNING(form) {
+function checkRUNNING() {
   if ("<?=$openvpnserver_running?>" == "yes") {
   
     form.INSTALL_ON_BOOT.disabled = true;
     form.DISCONNECT_ON_UMOUNT.disabled = true;
     form.SERVER_PATH.disabled = true;
-    form.SERVER_MODE.disabled = true;
     form.NETWORK.disabled = true;
+    form.NETWORK_TEXT.disabled = true;
     form.NETMASK.disabled = true;
     form.SERVER_PORT.disabled = true;
     form.CANONICAL.disabled = true;
@@ -1656,17 +1695,18 @@ function checkRUNNING(form) {
     form.COMP_LZO.disabled = true;
     form.IPP.disabled = true;
     form.DHCP_1.disabled = true;
-    form.DHCP_2.disabled = true;
     form.TELNET_CONSOLE.disabled = true;
+    form.VERB.disabled = true;
     form.KEY_COUNTRY.disabled = true;
     form.KEY_PROVINCE.disabled = true;
     form.KEY_CITY.disabled = true;
     form.KEY_ORG.disabled = true;
     form.KEY_EMAIL.disabled = true;
-    form.KEY_PATH.disabled = true;
-     
+    form.KEY_PATH.disabled = true;  
   }
 }
+
+
 </script>
 
 </BODY>
@@ -1730,7 +1770,6 @@ shell_exec("/etc/rc.d/rc.openvpnserver revoke_client $REVOKE_A_CLIENT >/var/loca
 </INLINE>
 </FILE>
 
-
 ############################################
 # WEBUI Submit new client
 ############################################
@@ -1760,11 +1799,9 @@ shell_exec("/etc/rc.d/rc.openvpnserver add_client $ADD_NEW_CLIENT $NEW_PASSWORD_
 <![CDATA[
 
 <?PHP
-
 $INSTALL_ON_BOOT = $_POST['INSTALL_ON_BOOT'];
 $DISCONNECT_ON_UMOUNT = $_POST['DISCONNECT_ON_UMOUNT'];
 $SERVER_PATH = $_POST['SERVER_PATH'];
-$SERVER_MODE = $_POST['SERVER_MODE'];
 $NETWORK = $_POST['NETWORK'];
 $NETMASK = $_POST['NETMASK'];
 $SERVER_PORT = $_POST['SERVER_PORT'];
@@ -1779,15 +1816,13 @@ $LAN_SUBNET = $_POST['LAN_SUBNET'];
 $COMP_LZO = $_POST['COMP_LZO'];
 $IPP = $_POST['IPP'];
 $DHCP_1 = $_POST['DHCP_1'];
-$DHCP_2 = $_POST['DHCP_2'];
 $TELNET_CONSOLE = $_POST['TELNET_CONSOLE'];
-
+$VERB = $_POST['VERB'];
 
 $arguments = "";
 $arguments .= "INSTALL_ON_BOOT_NEW=\"$INSTALL_ON_BOOT\"\n";
 $arguments .= "DISCONNECT_ON_UMOUNT_NEW=\"$DISCONNECT_ON_UMOUNT\"\n";
 $arguments .= "SERVER_PATH_NEW=\"$SERVER_PATH\"\n";
-$arguments .= "SERVER_MODE_NEW=\"$SERVER_MODE\"\n";
 $arguments .= "NETWORK_NEW=\"$NETWORK\"\n";
 $arguments .= "NETMASK_NEW=\"$NETMASK\"\n";
 $arguments .= "SERVER_PORT_NEW=\"$SERVER_PORT\"\n";
@@ -1802,8 +1837,8 @@ $arguments .= "LAN_SUBNET_NEW=\"$LAN_SUBNET\"\n";
 $arguments .= "COMP_LZO_NEW=\"$COMP_LZO\"\n";
 $arguments .= "IPP_NEW=\"$IPP\"\n";
 $arguments .= "DHCP_1_NEW=\"$DHCP_1\"\n";
-$arguments .= "DHCP_2_NEW=\"$DHCP_2\"\n";
 $arguments .= "TELNET_CONSOLE_NEW=\"$TELNET_CONSOLE\"\n";
+$arguments .= "VERB_NEW=\"$VERB\"\n";
 
 echo "Please wait while updating configuration...";
 
@@ -1811,7 +1846,6 @@ $file = "/usr/local/emhttp/plugins/openvpnserver/openvpnserver.args";
 file_put_contents($file, $arguments);
 shell_exec("/etc/rc.d/rc.openvpnserver updatecfg");
 shell_exec("/etc/rc.d/rc.openvpnserver writeconf");
-
 ?>
 
 <HTML>
@@ -1831,7 +1865,6 @@ shell_exec("/etc/rc.d/rc.openvpnserver writeconf");
 <![CDATA[
 
 <?PHP
- 
 $KEY_COUNTRY = $_POST['KEY_COUNTRY'];
 $KEY_PROVINCE = $_POST['KEY_PROVINCE'];
 $KEY_CITY = $_POST['KEY_CITY'];
@@ -1852,7 +1885,6 @@ echo "Please wait while updating configuration for certs...";
 $file = "/usr/local/emhttp/plugins/openvpnserver/openvpnserver_cert.args";
 file_put_contents($file, $arguments);
 shell_exec("/etc/rc.d/rc.openvpnserver updatecfg_cert");
-
 ?>
 
 <HTML>
