@@ -1,7 +1,7 @@
 <?xml version='1.0' standalone='yes'?>
 
 <!DOCTYPE PLUGIN [
-<!ENTITY plgver "2.0.11">
+<!ENTITY plgver "2.0.12">
 ]>
 
 <PLUGIN>
@@ -108,7 +108,7 @@ NETMASK=255.255.255.0
 SERVER_PORT=1194
 CANONICAL=""
 PROTOCOL=udp
-CHIPHER=""
+CIPHER=""
 CLIENT="Enable"
 HASH_ALGO=""
 GATEWAY="redirect-gateway def1"
@@ -194,7 +194,7 @@ NETMASK=$NETMASK_NEW
 SERVER_PORT=$SERVER_PORT_NEW
 CANONICAL=$CANONICAL_NEW
 PROTOCOL=$PROTOCOL_NEW
-CHIPHER=$CHIPHER_NEW
+CIPHER=$CIPHER_NEW
 CLIENT=$CLIENT_NEW
 HASH_ALGO=$HASH_ALGO_NEW
 GATEWAY=$GATEWAY_NEW
@@ -223,7 +223,7 @@ write_cfg()
   echo "SERVER_PORT=$SERVER_PORT" >> /boot/config/plugins/openvpnserver/openvpnserver.cfg
   echo "CANONICAL=$CANONICAL" >> /boot/config/plugins/openvpnserver/openvpnserver.cfg
   echo "PROTOCOL=$PROTOCOL" >> /boot/config/plugins/openvpnserver/openvpnserver.cfg
-  echo "CHIPHER=\"$CHIPHER\"" >> /boot/config/plugins/openvpnserver/openvpnserver.cfg
+  echo "CIPHER=\"$CIPHER\"" >> /boot/config/plugins/openvpnserver/openvpnserver.cfg
   echo "CLIENT=\"$CLIENT\"" >> /boot/config/plugins/openvpnserver/openvpnserver.cfg
   echo "HASH_ALGO=\"$HASH_ALGO\"" >> /boot/config/plugins/openvpnserver/openvpnserver.cfg
   echo "GATEWAY=\"$GATEWAY\"" >> /boot/config/plugins/openvpnserver/openvpnserver.cfg
@@ -351,8 +351,8 @@ echo "keepalive 10 120" >> $SERVER_PATH/openvpnserver.ovpn
 echo "user nobody" >> $SERVER_PATH/openvpnserver.ovpn
 echo "group users" >> $SERVER_PATH/openvpnserver.ovpn
 
-if [ "$CHIPHER" != "" ]; then    
-	echo "$CHIPHER" >> $SERVER_PATH/openvpnserver.ovpn
+if [ "$CIPHER" != "" ]; then    
+	echo "$CIPHER" >> $SERVER_PATH/openvpnserver.ovpn
 fi
 
 if [ "$CLIENT" != "" ]; then    
@@ -507,8 +507,8 @@ KEY_CN=$client $SERVER_PATH/easy-rsa-master/easy-rsa/2.0/pkitool $client
 
 cat > $KEY_DIR/$client.ovpn <<END
 remote $INTERNET_IP
-$CHIPHER
-$HASH_ALG
+$CIPHER
+$HASH_ALGO
 client
 dev tun
 proto $PROTOCOL
@@ -1530,11 +1530,11 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
       
       <tr>
       <td>Data Encryption</td>
-      <td><select name="CHIPHER" id="CHIPHER" size="1" title="Sets the encryption algorithm to use in the VPN connection">
-      <?=mk_option($openvpnserver_cfg['CHIPHER'], "cipher des-ede3-cbc", "Tripple-DES");?>
-      <?=mk_option($openvpnserver_cfg['CHIPHER'], "cipher aes-256-cbc", "AES");?>
-      <?=mk_option($openvpnserver_cfg['CHIPHER'], "cipher bf-cbc", "Blowfish");?>
-      <?=mk_option($openvpnserver_cfg['CHIPHER'], "", "None");?>
+      <td><select name="CIPHER" id="CIPHER" size="1" title="Sets the encryption algorithm to use in the VPN connection">
+      <?=mk_option($openvpnserver_cfg['CIPHER'], "cipher des-ede3-cbc", "Tripple-DES");?>
+      <?=mk_option($openvpnserver_cfg['CIPHER'], "cipher aes-256-cbc", "AES");?>
+      <?=mk_option($openvpnserver_cfg['CIPHER'], "cipher bf-cbc", "Blowfish");?>
+      <?=mk_option($openvpnserver_cfg['CIPHER'], "", "None");?>
       </select></td>
       </tr>
       
@@ -1555,9 +1555,9 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
       </select></td>
       </tr>           
                    
-       <tr>
+      <tr>
       <td id="GATEWAY_TEXT">
-          <p>Redirect-gateway</p>
+      <p>Redirect-gateway</p>
       <td><select name="GATEWAY" id="GATEWAY" size="1">
       <?=mk_option($openvpnserver_cfg['GATEWAY'], "redirect-gateway", "redirect-gateway");?>
       <?=mk_option($openvpnserver_cfg['GATEWAY'], "redirect-gateway def1", "redirect-gateway def1");?>
@@ -1620,10 +1620,10 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
     </tr>
 
      <br></br>
-	<tr>
+     <tr>
 	<td><textarea class="tooltip" title="OpenVPN log" wrap="hard" readonly="yes" style="width: 440px; height: 160px;color: blue;font-size: 8pt"><?php echo $openvpn_log; ?></textarea></td>
-	</tr>
-	<br></br>
+     </tr>
+     <br></br>
     <?endif;?>
    </tr>
   </div>     
@@ -1652,7 +1652,7 @@ function validateForm() {
   document.getElementById('SERVER_PORT').disabled = false;
   document.getElementById('CANONICAL').disabled = false;
   document.getElementById('PROTOCOL').disabled = false;
-  document.getElementById('CHIPHER').disabled = false;
+  document.getElementById('CIPHER').disabled = false;
   document.getElementById('CLIENT').disabled = false;
   document.getElementById('HASH_ALGO').disabled = false;
   document.getElementById('GATEWAY').disabled = false;
@@ -1686,7 +1686,7 @@ function checkRUNNING() {
     form.SERVER_PORT.disabled = true;
     form.CANONICAL.disabled = true;
     form.PROTOCOL.disabled = true;
-    form.CHIPHER.disabled = true;
+    form.CIPHER.disabled = true;
     form.CLIENT.disabled = true;
     form.HASH_ALGO.disabled = true;
     form.GATEWAY.disabled = true;
@@ -1807,7 +1807,7 @@ $NETMASK = $_POST['NETMASK'];
 $SERVER_PORT = $_POST['SERVER_PORT'];
 $CANONICAL = $_POST['CANONICAL'];
 $PROTOCOL = $_POST['PROTOCOL'];
-$CHIPHER = $_POST['CHIPHER'];
+$CIPHER = $_POST['CIPHER'];
 $CLIENT = $_POST['CLIENT'];
 $HASH_ALGO = $_POST['HASH_ALGO'];
 $GATEWAY = $_POST['GATEWAY'];
@@ -1828,7 +1828,7 @@ $arguments .= "NETMASK_NEW=\"$NETMASK\"\n";
 $arguments .= "SERVER_PORT_NEW=\"$SERVER_PORT\"\n";
 $arguments .= "CANONICAL_NEW=\"$CANONICAL\"\n";
 $arguments .= "PROTOCOL_NEW=\"$PROTOCOL\"\n";
-$arguments .= "CHIPHER_NEW=\"$CHIPHER\"\n";
+$arguments .= "CIPHER_NEW=\"$CIPHER\"\n";
 $arguments .= "CLIENT_NEW=\"$CLIENT\"\n";
 $arguments .= "HASH_ALGO_NEW=\"$HASH_ALGO\"\n";
 $arguments .= "GATEWAY_NEW=\"$GATEWAY\"\n";
