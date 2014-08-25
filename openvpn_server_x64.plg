@@ -1,7 +1,7 @@
 <?xml version='1.0' standalone='yes'?>
 
 <!DOCTYPE PLUGIN [
-<!ENTITY plgver "2.0.12">
+<!ENTITY plgver "2.0.13">
 ]>
 
 <PLUGIN>
@@ -21,26 +21,12 @@ openvpnserver version 2 64Bit
 <MD5>ba1415d7928ade48de4d17c74d65a7a1</MD5>
 </FILE>
 
+
 <FILE Name="/boot/packages/openvpn-2.3.2-x86_64-1.txz" Run="upgradepkg --install-new">
-<URL>ftp://ftp.sunet.se/pub/os/Linux/distributions/slackware//slackware64-14.1/slackware64/n/openvpn-2.3.2-x86_64-1.txz</URL>
+<URL>ftp://ftp.sunet.se/pub/os/Linux/distributions/slackware//slackware64-current/slackware64/n/openvpn-2.3.2-x86_64-1.txz</URL>
 <MD5>efabea515e52b8aed23ee35c41fc52eb</MD5>
 </FILE>
 
-<FILE Name="/boot/packages/infozip-6.0-x86_64-2.txz" Run="upgradepkg --install-new">>
-<URL>ftp://ftp.sunet.se/pub/os/Linux/distributions/slackware//slackware64-14.1/slackware64/a/infozip-6.0-x86_64-2.txz</URL>
-<MD5>9fc6fcedc67a27dd555e64575847fb7b</MD5>
-</FILE>
-
-
-<FILE Name="/boot/packages/lzo-2.03-x86_64-1.txz" Run="upgradepkg --install-new">
-<URL>ftp://ftp.sunet.se/pub/os/Linux/distributions/slackware//slackware64-14.1/slackware64/l/lzo-2.03-x86_64-1.txz</URL>
-<MD5>d55f381c25cda96b274f36cf41be1575</MD5>
-</FILE>
-
-<FILE Name="/boot/packages/iproute2-3.10.0-x86_64-2.txz" Run="upgradepkg --install-new">
-<URL>ftp://ftp.sunet.se/pub/os/Linux/distributions/slackware//slackware64-14.1/slackware64/n/iproute2-3.10.0-x86_64-2.txz</URL>
-<MD5>22156ad2743433beb6bc7a7e3dff8124</MD5>
-</FILE>
 
 <FILE Name="/boot/config/plugins/openvpnserver/Device_status.png">
 <URL>--no-check-certificate http://lime-technology.com/wiki/images/9/97/Device_status.png</URL>
@@ -256,7 +242,7 @@ if [ ! -f /var/run/openvpnserver/openvpnserver.pid ]; then
 		echo "Adding iptables rule ....."
 		openvpnserver_iptables_add; 
  	else
- 		echo "An error occurred, server not started!. More info on /var/log/openvpnserver.log"
+ 		echo "An error occurred, server not started!. More info in /var/log/openvpnserver.log or /var/local/emhttp/plugins/openvpnserver/openvpnserver.out"
  	fi
  
  else
@@ -864,9 +850,10 @@ openvpnserver_iptables_add() {
 source /boot/config/plugins/openvpnserver/openvpnserver.cfg
 source  /boot/config/network.cfg
 
-LANSUBNET=$(/etc/rc.d/rc.openvpnserver get_subnet)
-IPRULES="iptables -t nat -A POSTROUTING -s $NETWORK/24 -d $LANSUBNET/24 -j MASQUERADE"
-eval $IPRULES
+#Not needed#
+###LANSUBNET=$(/etc/rc.d/rc.openvpnserver get_subnet)
+###IPRULES="iptables -t nat -A POSTROUTING -s $NETWORK/24 -d $LANSUBNET/24 -j MASQUERADE"
+####eval $IPRULES
 
 NEWBRIDGING=`echo -n $BRIDGING|  tr -d '\r'`
 NEWBRNAME=`echo -n $BRNAME|  tr -d '\r'`
@@ -1455,14 +1442,14 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
       </tr>
       
       <tr>
-	<td>Disconnect OpenVPN Server when stopping array</td>
-	<td>
-	<select name="DISCONNECT_ON_UMOUNT" id="DISCONNECT_ON_UMOUNT" size="1">
-	<?=mk_option($openvpnserver_cfg['DISCONNECT_ON_UMOUNT'], "no", "No");?>
-	<?=mk_option($openvpnserver_cfg['DISCONNECT_ON_UMOUNT'], "yes", "Yes");?>
-	</select>
-	</td>         
-	<tr>   
+      <td>Disconnect OpenVPN Server when stopping array</td>
+      <td>
+      <select name="DISCONNECT_ON_UMOUNT" id="DISCONNECT_ON_UMOUNT" size="1">
+      <?=mk_option($openvpnserver_cfg['DISCONNECT_ON_UMOUNT'], "no", "No");?>
+      <?=mk_option($openvpnserver_cfg['DISCONNECT_ON_UMOUNT'], "yes", "Yes");?>
+      </select>
+      </td>         
+      <tr>   
       
       <tr>
       <td>Path to store server config files</td>
@@ -1480,7 +1467,7 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
      
       <tr>
       <td id="NETWORK_TEXT">
-          <p>OpenVPN server IP</p>
+      <p>OpenVPN server IP</p>
       <td>
       <input type="text" style="width:25%" maxlength="15" name="NETWORK" id="NETWORK" value="<?=$openvpnserver_cfg['NETWORK'];?>" title="Default is 10.8.0.0, but can be set to any IP you like for the VPN server, example 10.10.0.0">
       </td>
@@ -1504,7 +1491,7 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
       
       <tr>
       <td id="DHCP_1_TEXT">
-          <p>Pushing DHCP options to clients</p>
+      <p>Pushing DHCP options to clients</p>
       <td><select name="DHCP_1" id="DHCP_1" size="1">
       <?=mk_option($openvpnserver_cfg['DHCP_1'], "dhcp-option DNS 8.8.8.8", "DNS Google");?>
       <?=mk_option($openvpnserver_cfg['DHCP_1'], "dhcp-option DNS", "DNS Local gateway");?>
@@ -1530,7 +1517,7 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
       
       <tr>
       <td>Data Encryption</td>
-      <td><select name="CIPHER" id="CIPHER" size="1" title="Sets the encryption algorithm to use in the VPN connection">
+      <td><select name="CIPHER" id="CIPHER" size="1" title="Sets the encryption algorithm to use in the VPN connection, changing this, you need to generate new client">
       <?=mk_option($openvpnserver_cfg['CIPHER'], "cipher des-ede3-cbc", "Tripple-DES");?>
       <?=mk_option($openvpnserver_cfg['CIPHER'], "cipher aes-256-cbc", "AES");?>
       <?=mk_option($openvpnserver_cfg['CIPHER'], "cipher bf-cbc", "Blowfish");?>
@@ -1540,7 +1527,7 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
       
       <tr>
       <td>Data Authentication</td>
-      <td><select name="HASH_ALGO" id="HASH_ALGO" size="1">
+      <td><select name="HASH_ALGO" id="HASH_ALGO" size="1" title="Sets the Data Authentication for VPN connection, changing this, you need to generate new client">
       <?=mk_option($openvpnserver_cfg['HASH_ALGO'], "auth sha512", "SHA512 ");?>
       <?=mk_option($openvpnserver_cfg['HASH_ALGO'], "auth sha256", "SHA256");?>
       <?=mk_option($openvpnserver_cfg['HASH_ALGO'], "", "None");?>
@@ -1558,7 +1545,7 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
       <tr>
       <td id="GATEWAY_TEXT">
       <p>Redirect-gateway</p>
-      <td><select name="GATEWAY" id="GATEWAY" size="1">
+      <td><select name="GATEWAY" id="GATEWAY" size="1" title="If you set this to 'No', you need to set 'Push LAN subnet to the clients' to 'Yes'">
       <?=mk_option($openvpnserver_cfg['GATEWAY'], "redirect-gateway", "redirect-gateway");?>
       <?=mk_option($openvpnserver_cfg['GATEWAY'], "redirect-gateway def1", "redirect-gateway def1");?>
       <?=mk_option($openvpnserver_cfg['GATEWAY'], "redirect-gateway def1 bypass-dhcp", "redirect-gateway def1 bypass-dhcp");?>
@@ -1577,7 +1564,7 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
        
       <tr>
       <td>Push LAN subnet to the clients</td>
-      <td><select name="LAN_SUBNET" id="LAN_SUBNET" size="1">
+      <td><select name="LAN_SUBNET" id="LAN_SUBNET" size="1" title="You need to set this to 'Yes', if 'Redirect-gateway' are set to 'No'">
       <?=mk_option($openvpnserver_cfg['LAN_SUBNET'], "Enable", "Yes");?>
       <?=mk_option($openvpnserver_cfg['LAN_SUBNET'], "Disable", "No");?>
       </select></td>
@@ -1585,7 +1572,7 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
             
       <tr>
       <td>COMP LZO</td>
-      <td><select name="COMP_LZO" id="COMP_LZO" size="1" title="Enable compression on the VPN link">
+      <td><select name="COMP_LZO" id="COMP_LZO" size="1" title="Enable compression on the VPN link, changing this, you need to generate new client">
       <?=mk_option($openvpnserver_cfg['COMP_LZO'], "comp-lzo", "Yes");?>
       <?=mk_option($openvpnserver_cfg['COMP_LZO'], "0", "No");?>
       </select></td>
@@ -1705,7 +1692,6 @@ function checkRUNNING() {
     form.KEY_PATH.disabled = true;  
   }
 }
-
 
 </script>
 
