@@ -1,6 +1,6 @@
 Menu="NetworkServices"
 Icon="openvpnserver.png"
-Version="2014.12.02"
+Version="2014.12.02a"
 Author="Peter_sm"
 Type="php"
 Title="OpenVPN Server TUN mode"
@@ -13,13 +13,10 @@ $VALID_USER = shell_exec("/etc/rc.d/rc.openvpnserver view_valid_user");
 $ONLINE_USER = shell_exec("/etc/rc.d/rc.openvpnserver view_online_user");
 $REVOKED_USER = shell_exec("/etc/rc.d/rc.openvpnserver view_revoked_user");
 $openvpnserver_running = file_exists("/var/run/openvpnserver/openvpnserver.pid") ? "yes" : "no";
-$openvpnserver_remoteplg = shell_exec("/etc/rc.d/rc.openvpnserver getver remote");
-$openvpnserver_localplg = shell_exec("/etc/rc.d/rc.openvpnserver getver local");
 $ovpncertsfolder = file_exists($openvpnserver_cert_cfg['KEY_PATH']) ? "yes" : "no";
 $certsw = $openvpnserver_cfg['SERVER_PATH'] . "/easy-rsa-master";
 $openvpnserver_rollback = file_exists( "boot/config/plugins/openvpn_server_x64.plg.old" ) ? "yes" : "no";
 $ovpncertsoftware = file_exists($certsw) ? "yes" : "no";
-$updates_exist = "false";
 $ovpnfilename = $openvpnserver_cfg['SERVER_PATH'] . "/openvpnserver.ovpn";
 $openvpnserver_config = file_exists($ovpnfilename) ? "yes" : "no";
 $OPEN_VPN_ONLINE_VER = shell_exec("/etc/rc.d/rc.openvpnserver getonlineversion");
@@ -45,10 +42,9 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
    {$openvpn_log = file_get_contents('/var/log/openvpnserver.log');} 
 
 ?>	
-
 <div style="width: 49%; float:left">
  <div id="title">
-    <span class="left">Status:&nbsp;<img src='/plugins/openvpnserver/images/Device_status.png'>
+    <span class="left">Status:&nbsp;<img src='/plugins/openvpnserver/images/device_status.png'>
       <?if ($openvpnserver_running=="yes"):?>
         <span class="green"><b>OpenVPN Server is RUNNING</b></span>
       <?else:?>
@@ -57,40 +53,6 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
     </span>
   </div>
  
-<br />
-  
-  <div style="border: 0px solid black;">
-    <table class="tablesorter">      
-      <tr>
-      	<thead>
-  		      <th>Plugin / Build</th>
-      	  	<th>Local Version</th>
-        		<th>Online Version</th>
-			</thead>      
-      </tr>
-      <tr style="font-weight:bold; background:#FFFFFF;">
-        <td>OpenVPN Server Plugin Version</td>
-        <td>         
-              <span class="green-text"><?=$openvpnserver_localplg?></span>        
-        </td>
-        <td>         
-              <span class="green-text"><?=$openvpnserver_remoteplg?></span>
-        </td>      
-      </tr>      
-      
-      <tr style="font-weight:bold; background:#FFFFFF;">
-        <td>OpenVPN Software Build</td>       
-       <td>       
-              <span class="green-text"><?=$OPEN_VPN_INSTALLED?></span>        
-        </td>   
-        <td>
-              <span class="green-text"><?=$OPEN_VPN_ONLINE_VER?></span>
-        </td>
-      </tr>            
-    </table>
-  </div>  
-
-
 <br />
 
 <div style="border: 0px solid black;">
@@ -245,8 +207,6 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
  </table>
 </div>
 
- 
-
 <?if (($ovpncertsoftware=="yes") && ($ovpncertsfolder=="yes") && ($openvpnserver_config=="yes")):?> 
 <?if ($openvpnserver_running != "yes"):?>  
 <table class="tablesorter">
@@ -315,7 +275,7 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
        
  <?if ($openvpnserver_running != "yes"):?>
   <div id="title">
-    <span class="left">Cert configuration settings :&nbsp;<img src='/plugins/openvpnserver/images/New_config.png'>
+    <span class="left">Cert configuration settings :&nbsp;<img src='/plugins/openvpnserver/images/new_config.png'>
   </div>
  
     <form name="openvpnserver_cert_settings" method="POST" action="/plugins/openvpnserver/openvpnserver_cert_submit.php" target="progressFrame" onsubmit="validateForm_cert();">
@@ -379,53 +339,12 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
     
 <div style="width: 49%; float:right">
    <div id="title">
-     <span class="left">OpenVPN Server/Daemon Configuration:&nbsp;<img src='/plugins/openvpnserver/images/New_config.png'>
+     <span class="left">OpenVPN Server/Daemon Configuration:&nbsp;<img src='/plugins/openvpnserver/images/new_config.png'>
     </div>  
-    
- <div style="border: 0px solid black;">
-   <table class="tablesorter">
-      <tr>
-      	<thead>
-				<th colspan="2">Updates</th>      	
-      	</thead>
-      </tr>
-      <?if (($openvpnserver_remoteplg != $openvpnserver_localplg) && ($openvpnserver_localplg != "Unknown") && ($openvpnserver_remoteplg != "Unknown")): ?>
-        <tr>
-        <td width="30%">
-        <form name="openvpnserver_updateplg" method="POST" action="/update.htm" target="progressFrame">
-         <input type="hidden" name="cmd" value="/etc/rc.d/rc.openvpnserver updateplg">
-         <input type="submit" name="runCmd" value="Update Plugin">
-        </form>
-        </td>
-        <td><span class="red-text">An update is available</span></td>
-        </tr>
-        <?$updates_exist="true"?>
-      <?endif;?>
-
-      <?if ($updates_exist=="false"):?>
-        <tr>
-         <td colspan="2" align="left">No updates available</td>
-        </tr>
-      <?endif;?>
-   
-    <br /> 
-        
- <? if (($openvpnserver_rollback=="yes") && ($updates_exist=="false")) : ?>
-    <table>
-	    <form name="openvpnserver_downgrade" method="POST" action="/update.htm" target="progressFrame" onsubmit="validateForm()">
-	     <input type="hidden" name="cmd" value="/etc/rc.d/rc.openvpnserver downgradeplg">
-       <input type="submit" name="runCmd" title="Downgrade to previuse plugin version"  value="Downgrade PLG">
-	    </form>
-   </div>
-   </table>
- <?endif;?> 
-</table>
-</div>
-  
- 
+     
   <?if ($openvpnserver_running == "yes"):?>
-    <br /> 
-    <div><b>To change configuration - Press Stop in "Control Action"</b></div>
+    <br></br> 
+    <div><left><b>To change configuration - Press Stop in "Control Action"</b></center></div>
   <?endif;?>
  
 <form name="openvpnserver_settings" method="POST" action="/plugins/openvpnserver/openvpnserver_submit.php" target="progressFrame" onsubmit="validateForm();">
@@ -625,7 +544,7 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
   <br />
  </table>
 </form>
-
+</div>
 <script type="text/javascript">
 
 function IOSCheck(what){ 
@@ -697,6 +616,7 @@ function checkRUNNING() {
     form.KEY_CITY.disabled = true;
     form.KEY_ORG.disabled = true;
     form.KEY_EMAIL.disabled = true;
+
     form.KEY_PATH.disabled = true;  
   }
 }
