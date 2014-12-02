@@ -100,7 +100,7 @@ rm -f /var/local/emhttp/plugins/openvpnserver/add_client.log
 if [ ! -f /var/run/openvpnserver/openvpnserver.pid ]; then
     	echo "Starting Openvpn server....."
 	source /boot/config/plugins/openvpnserver/openvpnserver.cfg
-	echo "sudo openvpn --writepid /var/run/openvpnserver/openvpnserver.pid --config $SERVER_PATH/openvpnserver.ovpn --script-security 2 --daemon 2>&1 &" > /var/local/emhttp/plugins/openvpnserver/openvpnserver.sh
+	echo "sudo -H -u root openvpn --writepid /var/run/openvpnserver/openvpnserver.pid --config $SERVER_PATH/openvpnserver.ovpn --script-security 2 --daemon 2>&1 &" > /var/local/emhttp/plugins/openvpnserver/openvpnserver.sh
 	chmod 777 /var/local/emhttp/plugins/openvpnserver/openvpnserver.sh
 	sleep 0.5
 	nohup /var/local/emhttp/plugins/openvpnserver/openvpnserver.sh > /var/local/emhttp/plugins/openvpnserver/openvpnserver.out /dev/null & 
@@ -232,7 +232,6 @@ if [ "$LAN_SUBNET" = "Enable" ]; then
 	LANSUBNET=$(/etc/rc.d/rc.openvpnserver get_subnet)
 	echo "push "\"route $LANSUBNET 255.255.255.0"\"" >> $SERVER_PATH/openvpnserver.ovpn
 	IP_ADDR="`echo $NETWORK | rev | sed s'/0/1/' | rev`"
-#	echo "push "\"route $LANSUBNET 255.255.255.0 $IP_ADDR"\"" >> $SERVER_PATH/openvpnserver.ovpn
 fi
 
 echo "push "\"resolv-retry infinite"\"" >> $SERVER_PATH/openvpnserver.ovpn
@@ -408,7 +407,7 @@ if [[ $2 != "" ]]; then  # this is for pkcs12 file (IOS ..)
 	chmod a+x pkcs12.sh
 	sleep 0.5		
 	#execute above script
-	nohup sudo $KEY_DIR/pkcs12.sh >> /var/local/emhttp/plugins/openvpnserver/openvpnserver.out /dev/null
+	nohup $KEY_DIR/pkcs12.sh >> /var/local/emhttp/plugins/openvpnserver/openvpnserver.out /dev/null
 		
 	sleep 7		
 
@@ -450,7 +449,7 @@ if [[ $2 != "" ]]; then  # this is for pkcs12 file (IOS ..)
 		echo "Next step, select the certificate to use with this profile. Here you will select the certificate we imported into iOS in the previous step." >> README.txt
 		
 		sleep 1
-		sudo chmod 400 {$client.p12,$client.ovpn,README.txt}
+		chmod 400 {$client.p12,$client.ovpn,README.txt}
 		echo "Creating a zip file for the client"	
 		zip $CLI_DIR/$client.zip $client.p12 $client.ovpn README.txt				
 fi
@@ -525,7 +524,7 @@ cd $KEY_DIR
 /usr/sbin/openvpn --genkey --secret ta.key
 sleep 0.5
 #sudo chmod 600 ta.key
-sudo chmod 400 {server.key,server.crt,ca.crt,ta.key}
+chmod 400 {server.key,server.crt,ca.crt,ta.key}
 
 #This command will generate an OpenVPN static key and write it to the file ta.key.
 #This key should be copied over a pre-existing secure channel to the server and all client machines
@@ -593,34 +592,6 @@ echo "The vars file was updated successful!!"
 
 }
 
-openvpnserver_getver()
-{
-if [[ ! -z $1 ]]; then
-    openvpnserver_plgver $1
-else
-    echo "usage $0 getver local|remote"
-fi
-}
-
-openvpnserver_plgver()
-{
-case "$1" in
- 'local')
-   if [ -f /boot/config/plugins/openvpn_server_x64.plg ]; then
-      VERSION=$(grep "<\!ENTITY plgver" /boot/config/plugins/openvpn_server_x64.plg | cut -d\" -f2)
-   else
-      VERSION=Unknown
-   fi
-  ;;
-   'remote')
-     VERSION=$(wget --no-check-certificate -q https://raw.github.com/petersm1/openvpn_server_x64/master/openvpn_server_x64.plg -O - | grep "<\!ENTITY plgver" | cut -d\" -f2)
-     if [ "$VERSION" == "" ]; then
-        VERSION=Unknown
-     fi
-    ;;
-  esac
-  echo -n "$VERSION"
-}
 
 server_IP()
 {
@@ -628,37 +599,6 @@ server_IP()
 	echo $IP
 }
  
-openvpnserver_updateplg()
-{
-cd /boot/config/plugins
-[ -f openvpn_server_x64.plg.old ] && rm -f openvpn_server_x64.plg.old
-openvpnserver_stop;
-
-if [ -f openvpn_server_x64.plg ]; then
-	mv openvpn_server_x64.plg openvpn_server_x64.plg.old
-	echo "Updating plugin"
-	wget -q --no-check-certificate https://github.com/petersm1/openvpn_server_x64/raw/master/openvpn_server_x64.plg
-	/usr/local/sbin/installplg /boot/config/plugins/openvpn_server_x64.plg
-else
-	echo "Updating plugin"
-	wget -q --no-check-certificate https://github.com/petersm1/openvpn_server_x64/raw/master/openvpn_server_x64.plg
-	/usr/local/sbin/installplg /boot/config/plugins/openvpn_server_x64.plg
-        openvpnserver_start;
-fi
-}
-
-openvpnserver_downgradeplg()
-{
-cd /boot/config/plugins
-if [ -f openvpn_server_x64.plg.old ]; then
-      	openvpnserver_stop;
-	rm -f /openvpn_server_x64.plg
-	mv openvpn_server_x64.plg.old openvpn_server_x64.plg
-	echo "downgrading plugin"
-	/usr/local/sbin/installplg /boot/config/plugins/openvpn_server_x64.plg
-      	openvpnserver_start;
-fi
-} 
  
 openvpnserver_getonlineversion()
 {
@@ -719,15 +659,10 @@ openvpnserver_iptables_add() {
 source /boot/config/plugins/openvpnserver/openvpnserver.cfg
 source  /boot/config/network.cfg
 
-#Not needed#
-###LANSUBNET=$(/etc/rc.d/rc.openvpnserver get_subnet)
-###IPRULES="iptables -t nat -A POSTROUTING -s $NETWORK/24 -d $LANSUBNET/24 -j MASQUERADE"
-####eval $IPRULES
-
 NEWBRIDGING=`echo -n $BRIDGING|  tr -d '\r'`
 NEWBRNAME=`echo -n $BRNAME|  tr -d '\r'`
 
-if [ $NEWBRIDGING == "yes" ] ; then
+if [ "$NEWBRIDGING" == "yes" ] ; then
 	IPRULES1="iptables -t nat -A POSTROUTING -s $NETWORK/24 -o $NEWBRNAME -j MASQUERADE"
 	eval $IPRULES1
 else
@@ -749,7 +684,7 @@ done
 # Delete the lines, last to first.
 for line in $LINES
 do
-  sudo iptables -t nat -D POSTROUTING $line
+  iptables -t nat -D POSTROUTING $line
 done
 
 unset LINES
@@ -784,9 +719,6 @@ case "$1" in
   'create_server_cert')
     openvpnserver_create_server_cert
     ;;
-  'getver')
-    openvpnserver_getver $2 $3
-    ;;
   'serverip')
     server_IP
     ;;
@@ -796,12 +728,6 @@ case "$1" in
   'getlocalversion')
    openvpnserver_getlocalversion
    ;;  
-  'updateplg')
-   openvpnserver_updateplg
-   ;;
-  'downgradeplg')
-   openvpnserver_downgradeplg
-   ;;
   'get_gw')
    openvpnserver_get_def_gw
    ;;
@@ -839,3 +765,4 @@ case "$1" in
     
     echo "usage $0 start|stop|restart|download_easy-rsa|create_server_cert|add_client 'name'|add_client 'name' 'password|revoke_client 'name'|view_valid_user|view_online_user|view_revoked_user"
 esac
+
