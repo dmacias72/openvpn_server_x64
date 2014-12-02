@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "openvpnserver">
 <!ENTITY author    "petersm1">
-<!ENTITY version   "2014.12.02">
+<!ENTITY version   "2014.12.02a">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/&author;/openvpn_server_x64/master/openvpn_server_x64.plg">
 <!ENTITY pkgURL	 "ftp://ftp.sunet.se/pub/os/Linux/distributions/slackware//">
 <!ENTITY pkgs 	    "/boot/packages/">
@@ -93,9 +93,11 @@ mkdir /var/run/&name;/
 <![CDATA[
 # Check my IP script
 #!/bin/bash
+#wget http://ipecho.net/plain -O - -q ; echo
+#curl icanhazip.com
+curl -s --max-time 15 --silent icanhazip.com
+
 ]]>
-#curl -s --max-time 10 --silent checkip.dyndns.org | grep -Eo '[0-9\.]+'
-wget http://ipecho.net/plain -O - -q ; echo
 </INLINE>
 </FILE>
 
