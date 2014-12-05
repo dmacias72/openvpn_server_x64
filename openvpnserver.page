@@ -1,10 +1,12 @@
 Menu="NetworkServices"
 Icon="openvpnserver.png"
-Version="2014.12.02a"
+Version="2014.12.03a"
 Author="Peter_sm"
-Type="php"
+Type="xmenu"
 Title="OpenVPN Server TUN mode"
+Tabs="true"
 ---
+<link type="text/css" rel="stylesheet" href="/plugins/openvpnserver/styles/openvpnserver.css">
 <?php
 $openvpnserver_cfg = parse_ini_file( "/boot/config/plugins/openvpnserver/openvpnserver.cfg");
 $openvpnserver_cert_cfg = parse_ini_file( "/boot/config/plugins/openvpnserver/openvpnserver_cert.cfg");
@@ -15,7 +17,6 @@ $REVOKED_USER = shell_exec("/etc/rc.d/rc.openvpnserver view_revoked_user");
 $openvpnserver_running = file_exists("/var/run/openvpnserver/openvpnserver.pid") ? "yes" : "no";
 $ovpncertsfolder = file_exists($openvpnserver_cert_cfg['KEY_PATH']) ? "yes" : "no";
 $certsw = $openvpnserver_cfg['SERVER_PATH'] . "/easy-rsa-master";
-$openvpnserver_rollback = file_exists( "boot/config/plugins/openvpn_server_x64.plg.old" ) ? "yes" : "no";
 $ovpncertsoftware = file_exists($certsw) ? "yes" : "no";
 $ovpnfilename = $openvpnserver_cfg['SERVER_PATH'] . "/openvpnserver.ovpn";
 $openvpnserver_config = file_exists($ovpnfilename) ? "yes" : "no";
@@ -42,16 +43,20 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
    {$openvpn_log = file_get_contents('/var/log/openvpnserver.log');} 
 
 ?>	
-<div style="width: 49%; float:left">
- <div id="title">
-    <span class="left">Status:&nbsp;<img src='/plugins/openvpnserver/images/device_status.png'>
+<div>
+	<table class="tablesorter openvpnserver">
+	 	<thead>
+ 			<th colspan="2"><b>Status:&nbsp;</b><img src='/plugins/openvpnserver/images/device_status.png'>
       <?if ($openvpnserver_running=="yes"):?>
         <span class="green"><b>OpenVPN Server is RUNNING</b></span>
       <?else:?>
         <span class="red"><b>OpenVPN Server is NOT RUNNING</b></span>
       <?endif;?>
-    </span>
-  </div>
+	    </span>
+ 			</th>
+	 		<th class="header"></th>
+ 		</thead>
+	</table>
  
 <br />
 
@@ -241,310 +246,10 @@ $CHECK_PEM = shell_exec("/etc/rc.d/rc.openvpnserver check_pem");
 	</td>
 	</tr>	
  </form>
-
-<?if ($openvpnserver_running != "yes"):?>  
-
-<br />
-	<tr>
-	<td><textarea class="tooltip" title="OpenVPN log" wrap="hard" readonly="yes" style="width: 450px; height: 140px;color: blue;font-size: 8pt"><?php echo $openvpn_log; ?></textarea></td>
-	</tr>
-	<br />
-  <?endif;?>		
-
-  
-<?if ($openvpnserver_running != "yes"):?>  
- 	 <tr>
-	 <td><textarea class="tooltip" title="OpenVPN add client log: when rovoke a client, you are geting an error on last line. That is what you want to see, as it indicates that a certificate verification of the revoked certificate failed" wrap="hard" readonly="yes" style="width: 450px; height: 160px;color: blue;font-size: 8pt"><?php echo $add_client_log; ?></textarea></td>
-	 </tr>
-  <?endif;?>
-<?endif;?>
-
 </table>
-
-    
-  <?if ($openvpnserver_running == "yes"):?>
-    <div><left><b>To change configuration - Press Stop in "Control Action"</b></center></div>
-     <div>
-     <br />    
-    	<tr>
-      <td><textarea class="tooltip" title="Information from 'ip route show'  is displayed here.." wrap="hard" readonly="yes" style="width: 450px; height: 130px;color: blue;font-size: 8pt"><?php echo $check_netstat; ?></textarea></td>
-	    </tr>
-     </div>     
-  <?endif;?>
-
-       
- <?if ($openvpnserver_running != "yes"):?>
-  <div id="title">
-    <span class="left">Cert configuration settings :&nbsp;<img src='/plugins/openvpnserver/images/new_config.png'>
-  </div>
- 
-    <form name="openvpnserver_cert_settings" method="POST" action="/plugins/openvpnserver/openvpnserver_cert_submit.php" target="progressFrame" onsubmit="validateForm_cert();">
-
-     <table>
-      <tr>
-       <td colspan="2" align="left">
-     	  <?if ($openvpnserver_running != "yes"):?>
-           <input type="submit" value="Save Below Configuration">
-        <?endif;?>
-       </td>
-      </tr>
-  
-      <tr>
-      <td>Path to store the cert's</td>
-      <td>
-      <input type="text" name="KEY_PATH" id="KEY_PATH" value="<?=$openvpnserver_cert_cfg['KEY_PATH'];?>" title="">
-      </td>
-      </tr>
-      
-      <tr>
-      <td>Country</td>
-      <td>
-      <input type="text" name="KEY_COUNTRY" id="KEY_COUNTRY" style="width:7%" maxlength="2" value="<?=$openvpnserver_cert_cfg['KEY_COUNTRY'];?>" title="Default is ...">
-      </td>
-      </tr>  
- 
-      <tr>
-      <td>Province</td>
-      <td>
-      <input type="text" name="KEY_PROVINCE" id="KEY_PROVINCE" style="width:47%" maxlength="20" value="<?=$openvpnserver_cert_cfg['KEY_PROVINCE'];?>" title="Default is ...">
-      </td>
-      </tr>   
-      
-      <tr>
-      <td>City</td>
-      <td>
-      <input type="text" name="KEY_CITY" id="KEY_CITY" style="width:47%" maxlength="20" value="<?=$openvpnserver_cert_cfg['KEY_CITY'];?>" title="Default is ...">
-      </td>
-      </tr>   
-  
-      <tr>
-      <td>Organisation</td>
-      <td>
-      <input type="text" name="KEY_ORG" id="KEY_ORG" style="width:47%" maxlength="20" value="<?=$openvpnserver_cert_cfg['KEY_ORG'];?>" title="Default is ...">
-      </td>
-      </tr>   
-      
-      <tr>
-      <td>E-Mail</td>
-      <td>
-      <input type="text" name="KEY_EMAIL" id="KEY_EMAIL" style="width:62%" maxlength="30" value="<?=$openvpnserver_cert_cfg['KEY_EMAIL'];?>" title="Default is ...">
-      </td>
-      </tr>   
- 
-    </table>
- </form> 
 <?endif;?>
-</div> 
-
-    
-<div style="width: 49%; float:right">
-   <div id="title">
-     <span class="left">OpenVPN Server/Daemon Configuration:&nbsp;<img src='/plugins/openvpnserver/images/new_config.png'>
-    </div>  
-     
-  <?if ($openvpnserver_running == "yes"):?>
-    <br></br> 
-    <div><left><b>To change configuration - Press Stop in "Control Action"</b></center></div>
-  <?endif;?>
- 
-<form name="openvpnserver_settings" method="POST" action="/plugins/openvpnserver/openvpnserver_submit.php" target="progressFrame" onsubmit="validateForm();">
- <table>   
-   <?if ($openvpnserver_running != "yes"):?> 
-      <tr>
-      <td colspan="2" align="left">
-       <?if ($openvpnserver_running != "yes"):?>
-        <input type="submit" value="Save Below Configuration" title="The openvpnserver.conf will automaticly be created / updated when saving">
-       <?endif;?>
-      </td>
-      </tr>
-        
-      <tr>
-      <td>Start OpenVPN server during array mount</td>
-      <td>
-      <select name="INSTALL_ON_BOOT" id="INSTALL_ON_BOOT" size="1">
-      <?=mk_option($openvpnserver_cfg['INSTALL_ON_BOOT'], "enable", "Yes");?>
-      <?=mk_option($openvpnserver_cfg['INSTALL_ON_BOOT'], "disable", "No");?>
-      </select>
-      </td>
-      </tr>
-      
-      <tr>
-      <td>Disconnect OpenVPN Server when stopping array</td>
-      <td>
-      <select name="DISCONNECT_ON_UMOUNT" id="DISCONNECT_ON_UMOUNT" size="1">
-      <?=mk_option($openvpnserver_cfg['DISCONNECT_ON_UMOUNT'], "no", "No");?>
-      <?=mk_option($openvpnserver_cfg['DISCONNECT_ON_UMOUNT'], "yes", "Yes");?>
-      </select>
-      </td>         
-      <tr>   
-      
-      <tr>
-      <td>Path to store server config files</td>
-      <td>
-      <input type="text" name="SERVER_PATH" id="SERVER_PATH" value="<?=$openvpnserver_cfg['SERVER_PATH'];?>" title="">
-      </td>
-      </tr>   
-                  
-      <tr>
-      <td>Dynamic DNS</td>
-      <td>
-      <input type="text" style="width:55%" maxlength="25" name="CANONICAL" id="CANONICAL" value="<?=$openvpnserver_cfg['CANONICAL'];?>" title="If you have a URL (like DynDNS), you can enter it here, this will overide your WAN IP in client config files">
-      </td>
-      </tr> 
-     
-      <tr>
-      <td id="NETWORK_TEXT">
-      <p>OpenVPN server IP</p>
-      <td>
-      <input type="text" style="width:25%" maxlength="15" name="NETWORK" id="NETWORK" value="<?=$openvpnserver_cfg['NETWORK'];?>" title="Default is 10.8.0.0, but can be set to any IP you like for the VPN server, example 10.10.0.0">
-      </td>
-      </td>
-      </tr> 
-          
-      <tr>
-      <td>Netmask</td>
-      <td>
-      <input type="text" style="width:25%" maxlength="15" name="NETMASK" id="NETMASK" value="<?=$openvpnserver_cfg['NETMASK'];?>" title="Default is 255.255.255.0">
-      </td>
-      </tr> 
-      
-      <tr>
-      <td>Allow Client to Client</td>
-      <td><select name="CLIENT" id="CLIENT" size="1">
-      <?=mk_option($openvpnserver_cfg['CLIENT'], "Enable", "Yes");?>
-      <?=mk_option($openvpnserver_cfg['CLIENT'], "", "No");?>
-      </select></td>
-      </tr>   
-      
-      <tr>
-      <td id="DHCP_1_TEXT">
-      <p>Pushing DHCP options to clients</p>
-      <td><select name="DHCP_1" id="DHCP_1" size="1">
-      <?=mk_option($openvpnserver_cfg['DHCP_1'], "dhcp-option DNS 8.8.8.8", "DNS Google");?>
-      <?=mk_option($openvpnserver_cfg['DHCP_1'], "dhcp-option DNS", "DNS Local gateway");?>
-      <?=mk_option($openvpnserver_cfg['DHCP_1'], "", "No");?>
-      </select>
-      </td>
-      </tr>         
-
-      <tr>
-      <td>Port for the server</td>
-      <td>
-      <input type="text" style="width:17%" maxlength="5" name="SERVER_PORT" id="SERVER_PORT" value="<?=$openvpnserver_cfg['SERVER_PORT'];?>" title="You will need to open up this port on your firewall or router">
-      </td>
-      </tr> 
-
-      <tr>
-      <td>Tunnel Protocol</td>
-      <td><select name="PROTOCOL" id="PROTOCOL" size="1">
-      <?=mk_option($openvpnserver_cfg['PROTOCOL'], "udp", "UDP");?>
-      <?=mk_option($openvpnserver_cfg['PROTOCOL'], "tcp", "TCP");?>
-      </select></td>
-      </tr>
-      
-      <tr>
-      <td>Data Encryption</td>
-      <td><select name="CIPHER" id="CIPHER" size="1" title="Sets the encryption algorithm to use in the VPN connection, changing this, you need to generate new client">
-      <?=mk_option($openvpnserver_cfg['CIPHER'], "cipher des-ede3-cbc", "Tripple-DES");?>
-      <?=mk_option($openvpnserver_cfg['CIPHER'], "cipher aes-256-cbc", "AES");?>
-      <?=mk_option($openvpnserver_cfg['CIPHER'], "cipher bf-cbc", "Blowfish");?>
-      <?=mk_option($openvpnserver_cfg['CIPHER'], "", "None");?>
-      </select></td>
-      </tr>
-      
-      <tr>
-      <td>Data Authentication</td>
-      <td><select name="HASH_ALGO" id="HASH_ALGO" size="1" title="Sets the Data Authentication for VPN connection, changing this, you need to generate new client">
-      <?=mk_option($openvpnserver_cfg['HASH_ALGO'], "auth sha512", "SHA512 ");?>
-      <?=mk_option($openvpnserver_cfg['HASH_ALGO'], "auth sha256", "SHA256");?>
-      <?=mk_option($openvpnserver_cfg['HASH_ALGO'], "", "None");?>
-      </select></td>
-      </tr>
-           
-      <tr>
-      <td>ifconfig-pool-persist ipp.txt</td>
-      <td><select name="IPP" id="IPP" title="Maintain a record of client  virtual IP address associations in this file.If OpenVPN goes down or is restarted, reconnecting clients can be assigned the same virtual IP address from the pool that was previously assigned."  size="1">
-      <?=mk_option($openvpnserver_cfg['IPP'], "ipp.txt", "Yes");?>
-      <?=mk_option($openvpnserver_cfg['IPP'], "", "No");?>
-      </select></td>
-      </tr>           
-                   
-      <tr>
-      <td id="GATEWAY_TEXT">
-      <p>Redirect-gateway</p>
-      <td><select name="GATEWAY" id="GATEWAY" size="1" title="If you set this to 'No', you need to set 'Push LAN subnet to the clients' to 'Yes'">
-      <?=mk_option($openvpnserver_cfg['GATEWAY'], "redirect-gateway", "redirect-gateway");?>
-      <?=mk_option($openvpnserver_cfg['GATEWAY'], "redirect-gateway def1", "redirect-gateway def1");?>
-      <?=mk_option($openvpnserver_cfg['GATEWAY'], "redirect-gateway def1 bypass-dhcp", "redirect-gateway def1 bypass-dhcp");?>
-      <?=mk_option($openvpnserver_cfg['GATEWAY'], "Disable", "No");?>
-      </select>
-      </td>
-      </tr>         
-     
-      <tr>
-      <td>Topology subnet</td>
-      <td><select name="SUBNET" id="SUBNET" size="1">
-      <?=mk_option($openvpnserver_cfg['SUBNET'], "topology subnet", "Yes");?>
-      <?=mk_option($openvpnserver_cfg['SUBNET'], "Disable", "No");?>
-      </select></td>
-      </tr>   
-       
-      <tr>
-      <td>Push LAN subnet to the clients</td>
-      <td><select name="LAN_SUBNET" id="LAN_SUBNET" size="1" title="You need to set this to 'Yes', if 'Redirect-gateway' are set to 'No'">
-      <?=mk_option($openvpnserver_cfg['LAN_SUBNET'], "Enable", "Yes");?>
-      <?=mk_option($openvpnserver_cfg['LAN_SUBNET'], "Disable", "No");?>
-      </select></td>
-      </tr>   
-            
-      <tr>
-      <td>COMP LZO</td>
-      <td><select name="COMP_LZO" id="COMP_LZO" size="1" title="Enable compression on the VPN link, changing this, you need to generate new client">
-      <?=mk_option($openvpnserver_cfg['COMP_LZO'], "comp-lzo", "Yes");?>
-      <?=mk_option($openvpnserver_cfg['COMP_LZO'], "0", "No");?>
-      </select></td>
-      </tr>
-      
-      <tr>
-      <td>TELNET management console</td>
-      <td><select name="TELNET_CONSOLE" id="TELNET_CONSOLE" title="This will get you acess to an TELNET console on UnRAid IP port 10000. Acessing the console, use Putty" size="1">
-      <?=mk_option($openvpnserver_cfg['TELNET_CONSOLE'], "No", "No");?>
-      <?=mk_option($openvpnserver_cfg['TELNET_CONSOLE'], "yes", "Yes");?>
-      </select></td>
-      </tr>
-      
-      <tr>
-      <td>LOG settings</td>
-      <td><select name="VERB" id="VERB" title="Verbosity of the log file" size="1">
-      <?=mk_option($openvpnserver_cfg['VERB'], "verb 3", "3");?>
-      <?=mk_option($openvpnserver_cfg['VERB'], "verb 9", "9");?>
-      <?=mk_option($openvpnserver_cfg['VERB'], "verb 15", "15");?>
-      </select></td>
-      </tr>
-
-      <br />
-
-<?endif;?>
-     
- <div>
-  <tr>
-   <?if ($openvpnserver_running=="yes"):?>
-    <tr>
-     <td><textarea class="tooltip" title="OpenVPN status" wrap="hard" readonly="yes" style="width: 440px; height: 160px;color: blue;font-size: 8pt"><?php echo $openvpnststus_log; ?></textarea></td>
-    </tr>
-
-     <br />
-     <tr>
-	<td><textarea class="tooltip" title="OpenVPN log" wrap="hard" readonly="yes" style="width: 440px; height: 160px;color: blue;font-size: 8pt"><?php echo $openvpn_log; ?></textarea></td>
-     </tr>
-     <br />
-    <?endif;?>
-   </tr>
-  </div>     
-  <br />
- </table>
-</form>
 </div>
+
 <script type="text/javascript">
 
 function IOSCheck(what){ 
