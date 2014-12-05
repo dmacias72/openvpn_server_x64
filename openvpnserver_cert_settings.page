@@ -1,0 +1,62 @@
+Menu="openvpnserver:2"
+Title="Cert Settings"
+---
+
+<div>
+<form name="openvpnserver_cert_settings" method="POST" action="/plugins/openvpnserver/openvpnserver_cert_submit.php" target="progressFrame" onsubmit="validateForm_cert();">
+<table class="tablesorter openvpnserversettings">
+<thead><th colspan="2"><b>OpenVPN Server Cert Configuration:&nbsp;<img src='/plugins/openvpnserver/images/new_config.png'></b></th><th class="header"></th></thead>
+ 
+      <tr>
+       <td colspan="2" align="left">
+     	  <?if ($openvpnserver_running != "yes"):?>
+           <input type="submit" value="Save Below Configuration">
+        <?endif;?>
+       </td>
+      </tr>
+  
+      <tr>
+      <td>Path to store the cert</td>
+      <td>
+      <input type="text" name="KEY_PATH" id="KEY_PATH" value="<?=$openvpnserver_cert_cfg['KEY_PATH'];?>" title="">
+      </td>
+      </tr>
+      
+      <tr>
+      <td>Country</td>
+      <td>
+      <input type="text" name="KEY_COUNTRY" id="KEY_COUNTRY" style="width:7%" maxlength="2" value="<?=$openvpnserver_cert_cfg['KEY_COUNTRY'];?>" title="Default is ...">
+      </td>
+      </tr>  
+ 
+      <tr>
+      <td>Province</td>
+      <td>
+      <input type="text" name="KEY_PROVINCE" id="KEY_PROVINCE" style="width:47%" maxlength="20" value="<?=$openvpnserver_cert_cfg['KEY_PROVINCE'];?>" title="Default is ...">
+      </td>
+      </tr>   
+      
+      <tr>
+      <td>City</td>
+      <td>
+      <input type="text" name="KEY_CITY" id="KEY_CITY" style="width:47%" maxlength="20" value="<?=$openvpnserver_cert_cfg['KEY_CITY'];?>" title="Default is ...">
+      </td>
+      </tr>   
+  
+      <tr>
+      <td>Organisation</td>
+      <td>
+      <input type="text" name="KEY_ORG" id="KEY_ORG" style="width:47%" maxlength="20" value="<?=$openvpnserver_cert_cfg['KEY_ORG'];?>" title="Default is ...">
+      </td>
+      </tr>   
+      
+      <tr>
+      <td>E-Mail</td>
+      <td>
+      <input type="text" name="KEY_EMAIL" id="KEY_EMAIL" style="width:62%" maxlength="30" value="<?=$openvpnserver_cert_cfg['KEY_EMAIL'];?>" title="Default is ...">
+      </td>
+      </tr>   
+ 
+    </table>
+ </form> 
+</div> 

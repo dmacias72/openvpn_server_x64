@@ -1,0 +1,38 @@
+Menu="openvpnserver:3"
+Title="Logs"
+---
+<div>
+<table class="tablesorter openvpnserverlog">
+<thead><th colspan="2"><b>OpenVPN Server Logs:&nbsp;<img src='/plugins/openvpnserver/images/new_config.png'></b></th><th class="header"></th></thead>
+
+	<tr>
+		<td><textarea class="tooltip" title="OpenVPN log" wrap="hard" readonly="yes" style="width: 450px; height: 140px;color: green;font-size: 8pt"><?php echo $openvpn_log; ?></textarea></td>
+	
+	<br />
+  
+  
+	
+		<td><textarea class="tooltip" title="OpenVPN add client log: when rovoke a client, you are geting an error on last line. That is what you want to see, as it indicates that a certificate verification of the revoked certificate failed" wrap="hard" readonly="yes" style="width: 450px; height: 160px;color: green;font-size: 8pt"><?php echo $add_client_log; ?></textarea></td>
+	</tr>
+	<br />
+	 
+	 
+	<tr>
+		<td><textarea class="tooltip" title="Information from 'ip route show'  is displayed here.." wrap="hard" readonly="yes" style="width: 450px; height: 130px;color: green;font-size: 8pt"><?php echo $check_netstat; ?></textarea></td>
+	
+  <br />
+
+
+    
+     <td><textarea class="tooltip" title="OpenVPN status" wrap="hard" readonly="yes" style="width: 440px; height: 160px;color: green;font-size: 8pt"><?php echo $openvpnststus_log; ?></textarea></td>
+    </tr>
+  	<br />
+
+    <tr>
+     	<td><textarea class="tooltip" title="OpenVPN log" wrap="hard" readonly="yes" style="width: 440px; height: 160px;color: green;font-size: 8pt"><?php echo $openvpn_log; ?></textarea></td>
+    </tr>
+  	<br />
+
+</table>
+</div>
+  
